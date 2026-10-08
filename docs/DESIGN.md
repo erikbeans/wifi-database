@@ -17,12 +17,14 @@ Two deliverables:
 - Let a user share a password (SSID + password + GPS location) to the central database.
 - Let a user search the database by network name or by location.
 - Let a user see nearby access points as pins on a map.
+- Let a user mark shared passwords as working or not, so the most reliable
+  password for each network is presented first.
 
 ### User stories (MVP)
 
 1. **Nearby list** — I open the app near a network I want to join. I see the
    networks my phone can currently scan, and the ones with a shared password
-   are badged "Password available". I tap one and copy the password.
+   are badged "Password available". I tap one and copy the top-ranked password.
 2. **Share** — I know the password for a network. I pick its SSID from my
    scan results (or type it manually), enter the password, confirm the
    captured GPS location, and submit. It is now searchable by anyone.
@@ -30,11 +32,15 @@ Two deliverables:
    radius of my location, and get a list with distances.
 4. **Map** — I see a map of my surroundings with pins for access points in
    the database. Tapping a pin shows details.
+5. **Vote** — after trying a password, I give it a thumbs-up if it worked or
+   a thumbs-down if it didn't. Good passwords rise, bad ones sink, so the
+   next person is offered the most likely password first.
 
 ### Explicit non-goals for MVP
 
 - No auto-joining networks (user copies the password and joins manually).
-- No offline cache, verification votes, or reporting (post-MVP backlog).
+- No offline cache or abuse reporting in MVP (post-MVP backlog); password
+  voting and ranking are in MVP scope (§4, §5).
 - No background scanning or background location — everything foreground.
 - The server is a plain REST API; no web frontend.
 
@@ -46,8 +52,8 @@ Two deliverables:
 │  Kotlin/Compose       │  HTTPS     │                      │  SQL   │                        │
 │  ─────────────────    │ ─────────▶ │  /api/v1/auth        │ ─────▶ │  users                 │
 │  - WiFi scan (OS)     │  JWT       │  /api/v1/access-...  │        │  access_points          │
-│  - GPS (OS)           │  Bearer    │  Argon2id hashing    │        │  (geometry + encrypted  │
-│  - osmdroid map (OSM) │            │  AES-256-GCM secrets │        │   password columns)     │
+│  - GPS (OS)           │  Bearer    │  Argon2id hashing    │        │  (geometry; passwords &  │
+│  - osmdroid map (OSM) │            │  AES-256-GCM secrets │        │   votes in child tables)│
 │  - Retrofit client    │            │  Rate limiting       │        │                        │
 └───────────────────────┘            └──────────────────────┘        └────────────────────────┘
 ```
@@ -61,6 +67,9 @@ Key properties:
   different things with different mechanisms, deliberately.
 - Location of an access point is the contributor's GPS fix at share time
   (i.e., an approximation of the router's location). The UI should say so.
+- Passwords are community-ranked, never overwritten: each contributed
+  password is a candidate, and up/down votes decide which is offered first
+  (§4, §5).
 
 ## 3. Android platform constraints (read this before building)
 
@@ -76,7 +85,8 @@ These are hard OS constraints that shape the app design:
 
 ## 4. Data model
 
-Two tables for MVP.
+Four tables: users, access points (the physical network), password candidates
+(one row per contributed password), and votes.
 
 ```sql
 CREATE TABLE users (
@@ -87,18 +97,39 @@ CREATE TABLE users (
 );
 
 CREATE TABLE access_points (
-    id                 UUID PRIMARY KEY,
-    ssid               TEXT NOT NULL,                    -- network name
-    bssid              TEXT,                             -- MAC, nullable (manual entries)
-    security           TEXT,                             -- 'WPA2', 'WPA3', 'Open', ... (informational)
-    password_ciphertext BYTEA NOT NULL,                  -- AES-256-GCM: nonce || ciphertext || tag
-    password_key_version INT NOT NULL DEFAULT 1,         -- enables future key rotation
-    geom               GEOMETRY(Point, 4326) NOT NULL,    -- PostGIS point (indexed with GiST)
-    latitude           DOUBLE PRECISION NOT NULL,        -- convenience mirror of geom
-    longitude          DOUBLE PRECISION NOT NULL,
-    submitted_by       UUID NOT NULL REFERENCES users(id),
-    created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at         TIMESTAMPTZ NOT NULL DEFAULT now()
+    id           UUID PRIMARY KEY,
+    ssid         TEXT NOT NULL,                     -- network name
+    bssid        TEXT,                              -- MAC, nullable (manual entries)
+    security     TEXT,                              -- 'WPA2', 'WPA3', 'Open', ... (informational)
+    geom         GEOMETRY(Point, 4326) NOT NULL,     -- PostGIS point (indexed with GiST)
+    latitude     DOUBLE PRECISION NOT NULL,          -- convenience mirror of geom
+    longitude    DOUBLE PRECISION NOT NULL,
+    submitted_by UUID NOT NULL REFERENCES users(id),  -- creator of the record
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE ap_passwords (
+    id                  UUID PRIMARY KEY,
+    access_point_id     UUID NOT NULL REFERENCES access_points(id) ON DELETE CASCADE,
+    password_ciphertext BYTEA NOT NULL,             -- AES-256-GCM: nonce || ciphertext || tag
+    password_key_version INT NOT NULL DEFAULT 1,    -- enables future key rotation
+    up_votes            INTEGER NOT NULL DEFAULT 0, -- denormalized for cheap ranking;
+    down_votes          INTEGER NOT NULL DEFAULT 0, -- recomputed from password_votes on change
+    score               INTEGER GENERATED ALWAYS AS (up_votes - down_votes) STORED,
+    submitted_by        UUID NOT NULL REFERENCES users(id),  -- contributor of this password
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX idx_ap_passwords_rank
+    ON ap_passwords (access_point_id, score DESC, created_at DESC);
+
+CREATE TABLE password_votes (
+    user_id     UUID NOT NULL REFERENCES users(id),
+    password_id UUID NOT NULL REFERENCES ap_passwords(id) ON DELETE CASCADE,
+    value       SMALLINT NOT NULL CHECK (value IN (-1, 1)),  -- 1 worked, -1 didn't
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (user_id, password_id)             -- one vote per user; changeable
 );
 
 -- Only one record per physical AP when we know its MAC.
@@ -107,11 +138,18 @@ CREATE UNIQUE INDEX uq_access_points_bssid
 CREATE INDEX idx_access_points_geom ON access_points USING GIST (geom);
 ```
 
-Dedup / merge policy:
+Candidates, ranking, and dedup:
 
-- If a new submission carries a `bssid` that already exists, the server
-  **updates** that record (newest password wins, `updated_at` bumped) rather
-  than creating a duplicate.
+- A physical access point is one `access_points` row (keyed by BSSID when
+  known). Every contributed password is its own `ap_passwords` candidate —
+  passwords are **never overwritten**; a new submission for a known BSSID
+  becomes an additional candidate.
+- If a submission is byte-identical to an existing candidate for that AP
+  (server decrypts that AP's handful of candidates to compare), no duplicate
+  is stored — it counts as an automatic upvote on the existing candidate.
+- Ranking: `score` = upvotes − downvotes; candidates sort by score desc, then
+  recency. The app offers the top candidate first and collapses candidates
+  scoring below −3 behind a "show unlikely passwords" toggle.
 - Entries without a BSSID are never auto-merged (two Starbucks guest networks
   are genuinely different hotspots); a future phase may merge on
   SSID + proximity heuristics.
@@ -140,11 +178,15 @@ meters.
 | GET | `/access-points/near?lat&lon&radius_m&limit` | Nearby list (radius search, default radius 500 m, max 5000 m, max limit 100). Returns `distance_m`. |
 | GET | `/access-points/in-bbox?min_lat&min_lon&max_lat&max_lon&limit` | Map viewport query (used while panning the map). |
 | GET | `/access-points/search?q&limit` | Name search (case-insensitive substring; `pg_trgm` index). |
-| GET | `/access-points/{id}` | Full detail — **the only endpoint that returns the password**. |
-| POST | `/access-points` | Create/update a shared entry. |
-| DELETE | `/access-points/{id}` | Delete own submission (owner only). |
+| GET | `/access-points/{id}` | Full detail — **the only endpoint that returns passwords** (ranked candidate list). |
+| POST | `/access-points` | Create an access point (or match it by BSSID) and add the password as its first candidate. |
+| POST | `/access-points/{ap_id}/passwords` | Add another password candidate to an existing access point. |
+| POST | `/passwords/{id}/vote` | Set or change my vote, `{value: 1 or -1}`. Upsert; one vote per user per password. |
+| DELETE | `/passwords/{id}/vote` | Retract my vote. |
+| DELETE | `/passwords/{id}` | Delete my own password candidate. |
+| DELETE | `/access-points/{id}` | Delete my own access point (owner only; candidates cascade). |
 
-**List/search responses never include the password.** Summary shape:
+**List/search responses never include passwords or contributor IDs.** Summary shape:
 
 ```json
 {
@@ -154,7 +196,8 @@ meters.
   "latitude": 47.6062,
   "longitude": -122.3321,
   "distance_m": 42,
-  "submitted_by": "u-1",
+  "password_count": 2,
+  "best_score": 11,
   "created_at": "2026-10-07T18:00:00Z",
   "updated_at": "2026-10-07T18:00:00Z"
 }
@@ -177,13 +220,36 @@ POST /api/v1/access-points
 
 - `bssid` and `security` optional; `consent_confirmed` must be `true` (the app
   shows a required checkbox: "I confirm I'm allowed to share this network's
-  password"). Server rejects otherwise.
-- On BSSID conflict: update existing record, return `200` with the updated
-  record; otherwise `201`.
+  password"). Server rejects otherwise. Same consent applies to adding
+  candidates via `/access-points/{ap_id}/passwords`.
+- On BSSID match with an existing AP: **no overwrite** — the password is added
+  as a new candidate, unless byte-identical to an existing candidate, in
+  which case it becomes an automatic upvote on that candidate. Return `200`
+  with the AP plus a `duplicate_password` flag; new APs return `201`.
 - Validation: SSID 1–32 bytes; password 1–63 chars; lat/lon range-checked.
 
+**Detail response** (the only place passwords appear; sorted by score desc,
+then recency; `my_vote` is the caller's current vote):
+
+```json
+{
+  "id": "9b2f...",
+  "ssid": "Cafe Nero Guest",
+  "security": "WPA2",
+  "latitude": 47.6062,
+  "longitude": -122.3321,
+  "passwords": [
+    { "id": "p-1", "password": "espresso42", "up_votes": 12,
+      "down_votes": 1, "score": 11, "my_vote": 1 },
+    { "id": "p-2", "password": "nero2023", "up_votes": 2,
+      "down_votes": 5, "score": -3, "my_vote": null }
+  ]
+}
+```
+
 **Rate limits (defaults, tunable):** 60 req/min per IP; 20 submissions per day
-per user; detail fetches (the password-revealing endpoint) 30/min per user.
+per user; 200 votes/day per user; detail fetches (the password-revealing
+endpoint) 30/min per user and 200/day per account.
 
 ## 6. Server design (`server/`)
 
@@ -200,15 +266,15 @@ server/
 │   ├── database.py          # engine, session factory
 │   ├── security.py          # hashing, JWT encode/decode, auth dependencies
 │   ├── access_points/
-│   │   ├── router.py        # endpoints
+│   │   ├── router.py        # endpoints (APs, password candidates, votes)
 │   │   ├── schemas.py       # Pydantic request/response models
 │   │   ├── models.py        # SQLAlchemy models
-│   │   ├── service.py       # geo queries, dedup/merge, encryption use
+│   │   ├── service.py       # geo queries, candidate dedup, ranking, votes
 │   │   └── crypto.py        # AES-256-GCM seal/open with key_version
 │   └── auth/
 │       └── router.py        # register/login
 ├── alembic/                 # migrations (schema above)
-├── tests/                   # pytest: auth, CRUD, geo queries, encryption round-trip
+├── tests/                   # pytest: auth, CRUD, geo queries, votes/ranking, encryption round-trip
 ├── pyproject.toml
 ├── Dockerfile
 └── docker-compose.yml
@@ -255,14 +321,17 @@ android/app/src/main/java/.../
 2. **Nearby (home):** on open — request location permission (rationale first),
    request GPS fix, trigger one WiFi scan. Cross-reference the two sources:
    each scanned SSID is matched against `GET /access-points/near` results and
-   badged "Password available" when a DB entry exists (match by BSSID when the
-   scan provides one, else by SSID within radius). "Results as of T" label +
+   badged "Password available" with the top candidate's score when a DB
+   entry exists (match by BSSID when the scan provides one, else by SSID
+   within radius). "Results as of T" label +
    refresh button, respecting scan throttling.
 3. **Share:** pick a scanned network (SSID/BSSID/security prefilled) or manual
    entry → password field (show/hide) → current GPS coordinates displayed and
    editable-by-map-pin optional → required consent checkbox → submit →
-   optimistic update of nearby list. Handle the BSSID-update case (200) the
-   same as creation (201).
+   optimistic update of nearby list. If the AP already exists (BSSID match)
+   the UI says "added as an alternative password"; if the password is
+   identical to an existing candidate it becomes an upvote, and the UI says
+   so. (Treat 200 and 201 the same.)
 4. **Search:** text query against `GET /access-points/search`, plus a "near me"
    mode using `GET /access-points/near` sorted by distance.
 5. **Map:** osmdroid `MapView` with user location + pins from
@@ -270,8 +339,11 @@ android/app/src/main/java/.../
    while panning, hard cap of markers). Tap pin → bottom sheet with summary →
    "View password" fetches detail and offers copy-to-clipboard + a toast
    confirmation.
-6. **Detail:** SSID, security, distance, submitted date, password hidden until
-   a copy action, delete button for own submissions.
+6. **Detail:** ranked password list (top first; candidates scoring below −3
+   collapse behind "show unlikely passwords"). Each row has thumbs-up/down
+   with the user's own vote reflected; "Copy" defaults to the selected row;
+   after copying, a "Did it work?" prompt drives voting. Delete buttons for
+   the user's own AP or password candidates.
 
 ### Repository pattern
 
@@ -284,8 +356,12 @@ android/app/src/main/java/.../
 - Account passwords: Argon2id hashes. WiFi passwords: AES-256-GCM at rest.
 - Password fields excluded from all logs; detail endpoint rate-limited and
   authenticated.
-- Consent checkbox required per submission; contributor identity stored for
-  accountability and "delete own entry" support.
+- Consent checkbox required per submission; contributor identity stored
+  internally for accountability and "delete own entry" support — but never
+  exposed in API responses.
+- Votes: one per user per password (primary-key enforced), changeable and
+  retractable, rate-capped per day; identical resubmissions fold into upvotes
+  so bad actors cannot flood an AP with duplicate candidates.
 - Input validation on both client and server (lengths, lat/lon bounds, MAC
   format).
 - Share screen copy warns that submitted passwords become public.
@@ -310,15 +386,16 @@ android/app/src/main/java/.../
 | Phase | Deliverable | Acceptance criteria |
 |---|---|---|
 | 0 — Scaffold | Repo skeleton: `server/`, `android/`, docker compose, CI | `docker compose up` serves `/healthz`; app builds; CI green |
-| 1 — Server core | Auth, encryption, CRUD + geo queries, rate limits, tests | Register/login round-trip; near/bbox/search verified against seeded PostGIS data; password decrypt round-trip; tests pass |
-| 2 — App core | Auth UI, nearby list, share flow, search, detail/copy | End-to-end on device: register → scan → share → another account sees password and copies it |
+| 1 — Server core | Auth, encryption, APs + password candidates, votes/ranking, geo queries, rate limits, tests | Register/login round-trip; near/bbox/search verified against seeded PostGIS data; password decrypt round-trip; vote upsert adjusts counts; identical resubmission becomes an upvote; tests pass |
+| 2 — App core | Auth UI, nearby list, share flow, search, detail/copy, voting UI | End-to-end on device: register → scan → share → second account copies the top password → votes up/down and ordering updates |
 | 3 — Map | MapScreen with viewport pins + detail sheet | Pins load while panning within bbox; tap → detail → copy |
 | 4 — Polish | Empty states, error handling, permission edge cases, icons | UX review pass; airplane/throttled-scan cases handled gracefully |
 
 ### Post-MVP backlog
 
-- Verification votes ("still works") with counters.
 - Offline cache (Room) of recently viewed entries.
+- Vote weighting by account reputation/age; score decay over time.
+- Auto-archive access points whose candidates are all deeply negative.
 - Report/flag endpoint + auto-hide threshold + admin review.
 - Auto-join via `WifiNetworkSpecifier` where the OS allows.
 - SSID+proximity dedup for BSSID-less entries.
@@ -335,3 +412,6 @@ android/app/src/main/java/.../
 4. Whether the share flow should let users drag the pin to correct the AP
    location (cheap to add since the map exists; proposed yes).
 5. ToS/privacy policy text for the consent step.
+6. Vote mechanics: collapse threshold for weak passwords (proposed score −3),
+   whether scores decay over time, and whether voting should require having
+   opened the password (anti-brigading).
