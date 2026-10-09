@@ -1,0 +1,54 @@
+name: wifi-database-prod
+
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${WIFI_DB_USER}
+      POSTGRES_PASSWORD: ${WIFI_DB_PASSWORD}
+      POSTGRES_DB: ${WIFI_DB_NAME}
+    volumes:
+      - pgdata-prod:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${WIFI_DB_USER} -d ${WIFI_DB_NAME}"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  api:
+    build: .
+    restart: unless-stopped
+    environment:
+      WIFI_DATABASE_URL: postgresql+psycopg2://${WIFI_DB_USER}:${WIFI_DB_PASSWORD}@db:5432/${WIFI_DB_NAME}
+      WIFI_JWT_SECRET: ${WIFI_JWT_SECRET}
+      WIFI_ENCRYPTION_KEY: ${WIFI_ENCRYPTION_KEY}
+      WIFI_SMTP_HOST: ${WIFI_SMTP_HOST:-localhost}
+      WIFI_SMTP_PORT: ${WIFI_SMTP_PORT:-1025}
+      WIFI_SMTP_USER: ${WIFI_SMTP_USER:-}
+      WIFI_SMTP_PASSWORD: ${WIFI_SMTP_PASSWORD:-}
+      WIFI_SMTP_FROM: ${WIFI_SMTP_FROM:-no-reply@openclaw.clickbeans.com}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      WIFI_PUBLIC_HOST: ${WIFI_PUBLIC_HOST}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - api
+
+volumes:
+  pgdata-prod:
+  caddy-data:
+  caddy-config:
