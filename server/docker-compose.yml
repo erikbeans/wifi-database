@@ -1,0 +1,42 @@
+name: wifi-database
+
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: wifi
+      POSTGRES_PASSWORD: wifi
+      POSTGRES_DB: wifi
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wifi -d wifi"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  api:
+    build: .
+    environment:
+      WIFI_DATABASE_URL: postgresql+psycopg2://wifi:wifi@db:5432/wifi
+      WIFI_JWT_SECRET: ${WIFI_JWT_SECRET:-dev-only-insecure-secret}
+      WIFI_ENCRYPTION_KEY: ${WIFI_ENCRYPTION_KEY:-}
+      WIFI_SMTP_HOST: mailhog
+      WIFI_SMTP_PORT: "1025"
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      mailhog:
+        condition: service_started
+
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    ports:
+      - "8025:8025"
+
+volumes:
+  pgdata:
