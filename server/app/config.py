@@ -24,7 +24,32 @@ class Settings(BaseSettings):
     smtp_password: str = ""
     smtp_from: str = "no-reply@wifi-database.local"
 
+    verify_url: str = "wifidatabase://verify?token={token}"
+    reset_url: str = "wifidatabase://password-reset?token={token}"
+
     cors_origins: list[str] = []
+
+    default_radius_m: int = 500
+    max_radius_m: int = 5000
+    max_bbox_degrees: float = 2.0
+    search_query_max_chars: int = 64
+    max_list_limit: int = 100
+
+    lockout_threshold: int = 5
+    lockout_base_minutes: int = 15
+    lockout_max_minutes: int = 1440
+
+    auth_email_quota_per_day: int = 10
+    flag_report_threshold: int = 3
+    audit_retention_days: int = 90
+
+    rate_limit_per_minute: int = 60
+    register_ip_limit_per_day: int = 20
+    detail_limit_per_minute: int = 30
+    detail_limit_per_day: int = 200
+    submission_limit_per_day: int = 20
+    vote_limit_per_day: int = 200
+    report_limit_per_day: int = 20
 
 
 @lru_cache
