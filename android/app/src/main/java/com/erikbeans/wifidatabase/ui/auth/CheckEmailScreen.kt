@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.erikbeans.wifidatabase.ui.Routes
+import com.erikbeans.wifidatabase.ui.common.emailAutofill
 
 @Composable
 fun CheckEmailScreen(
@@ -102,7 +103,9 @@ fun ForgotPasswordScreen(navController: NavController, viewModel: AuthViewModel 
             onValueChange = { email = it },
             label = { Text("Email") },
             singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .emailAutofill(),
         )
         Spacer(Modifier.height(16.dp))
         Button(

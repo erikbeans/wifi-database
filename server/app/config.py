@@ -24,8 +24,11 @@ class Settings(BaseSettings):
     smtp_password: str = ""
     smtp_from: str = "no-reply@wifi-database.local"
 
-    verify_url: str = "wifidatabase://verify?token={token}"
-    reset_url: str = "wifidatabase://password-reset?token={token}"
+    verify_url: str = "https://openclaw.clickbeans.com/verify?token={token}"
+    reset_url: str = "https://openclaw.clickbeans.com/password-reset?token={token}"
+
+    android_package: str = "com.erikbeans.wifidatabase"
+    android_sha256_fingerprints: list[str] = []
 
     cors_origins: list[str] = []
 

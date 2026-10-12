@@ -30,6 +30,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.erikbeans.wifidatabase.ui.Routes
+import com.erikbeans.wifidatabase.ui.common.emailAutofill
+import com.erikbeans.wifidatabase.ui.common.passwordAutofill
 
 @Composable
 fun LoginScreen(navController: NavController, viewModel: AuthViewModel = hiltViewModel()) {
@@ -126,7 +128,9 @@ private fun AuthForm(
             label = { Text("Email") },
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .emailAutofill(),
         )
         Spacer(Modifier.height(12.dp))
         OutlinedTextField(
@@ -146,7 +150,9 @@ private fun AuthForm(
             } else {
                 null
             },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .passwordAutofill(newPassword = !isLogin),
         )
         Spacer(Modifier.height(16.dp))
         Button(

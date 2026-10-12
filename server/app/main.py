@@ -3,6 +3,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
+from app import link_pages
 from app.access_points.router import access_points_router, passwords_router, reports_router
 from app.auth.router import router as auth_router
 from app.ratelimits import limiter
@@ -22,3 +23,18 @@ app.include_router(reports_router, prefix="/api/v1/reports", tags=["reports"])
 @app.get("/healthz", include_in_schema=False)
 def healthz() -> dict[str, str]:
     return {"status": "ok", "service": "wifi-database-api"}
+
+
+@app.get("/verify", include_in_schema=False)
+def verify_fallback_page(token: str = ""):
+    return link_pages.verify_page(token)
+
+
+@app.get("/password-reset", include_in_schema=False)
+def password_reset_fallback_page(token: str = ""):
+    return link_pages.password_reset_page(token)
+
+
+@app.get("/.well-known/assetlinks.json", include_in_schema=False)
+def assetlinks():
+    return link_pages.assetlinks_response()

@@ -35,6 +35,18 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="wifidatabase" android:host="password-reset" />
             </intent-filter>
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="openclaw.clickbeans.com" android:pathPrefix="/verify" />
+            </intent-filter>
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="openclaw.clickbeans.com" android:pathPrefix="/password-reset" />
+            </intent-filter>
         </activity>
     </application>
 

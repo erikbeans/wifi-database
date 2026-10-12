@@ -192,14 +192,20 @@ private fun AppNavHost(
         composable(
             route = Routes.VERIFY,
             arguments = listOf(navArgument("token") { type = NavType.StringType; defaultValue = "" }),
-            deepLinks = listOf(navDeepLink { uriPattern = "wifidatabase://verify?token={token}" }),
+            deepLinks = listOf(
+                navDeepLink { uriPattern = "wifidatabase://verify?token={token}" },
+                navDeepLink { uriPattern = "https://openclaw.clickbeans.com/verify?token={token}" },
+            ),
         ) { entry ->
             VerifyScreen(navController, entry.arguments?.getString("token").orEmpty())
         }
         composable(
             route = Routes.RESET_PASSWORD,
             arguments = listOf(navArgument("token") { type = NavType.StringType; defaultValue = "" }),
-            deepLinks = listOf(navDeepLink { uriPattern = "wifidatabase://password-reset?token={token}" }),
+            deepLinks = listOf(
+                navDeepLink { uriPattern = "wifidatabase://password-reset?token={token}" },
+                navDeepLink { uriPattern = "https://openclaw.clickbeans.com/password-reset?token={token}" },
+            ),
         ) { entry ->
             ResetPasswordScreen(navController, entry.arguments?.getString("token").orEmpty())
         }

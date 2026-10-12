@@ -39,6 +39,7 @@ import androidx.navigation.NavController
 import com.erikbeans.wifidatabase.data.api.ApiResult
 import com.erikbeans.wifidatabase.domain.repository.AuthRepository
 import com.erikbeans.wifidatabase.ui.Routes
+import com.erikbeans.wifidatabase.ui.common.passwordAutofill
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -166,7 +167,9 @@ fun ResetPasswordScreen(navController: NavController, token: String, viewModel: 
                 }
             },
             supportingText = { Text("At least 8 characters") },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .passwordAutofill(newPassword = true),
         )
         Spacer(Modifier.height(16.dp))
         Button(
