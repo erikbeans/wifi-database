@@ -28,6 +28,7 @@ services:
       WIFI_SMTP_USER: ${WIFI_SMTP_USER:-}
       WIFI_SMTP_PASSWORD: ${WIFI_SMTP_PASSWORD:-}
       WIFI_SMTP_FROM: ${WIFI_SMTP_FROM:-no-reply@openclaw.clickbeans.com}
+      WIFI_ANDROID_SHA256_FINGERPRINTS: ${WIFI_ANDROID_SHA256_FINGERPRINTS:-[]}
     depends_on:
       db:
         condition: service_healthy
