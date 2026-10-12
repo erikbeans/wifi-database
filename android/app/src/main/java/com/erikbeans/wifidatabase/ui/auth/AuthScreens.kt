@@ -8,11 +8,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -23,15 +21,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.erikbeans.wifidatabase.ui.Routes
-import com.erikbeans.wifidatabase.ui.common.emailAutofill
-import com.erikbeans.wifidatabase.ui.common.passwordAutofill
+import com.erikbeans.wifidatabase.ui.common.CredentialFieldKind
+import com.erikbeans.wifidatabase.ui.common.CredentialTextField
 
 @Composable
 fun LoginScreen(navController: NavController, viewModel: AuthViewModel = hiltViewModel()) {
@@ -105,8 +100,6 @@ private fun AuthForm(
     onPasswordChange: (String) -> Unit,
     onSubmit: () -> Unit,
 ) {
-    var showPassword by rememberSaveable { mutableStateOf(false) }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -122,38 +115,29 @@ private fun AuthForm(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.height(24.dp))
-        OutlinedTextField(
+        CredentialTextField(
             value = email,
             onValueChange = onEmailChange,
-            label = { Text("Email") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-            modifier = Modifier
-                .fillMaxWidth()
-                .emailAutofill(),
+            label = "Email",
+            kind = CredentialFieldKind.Email,
+            modifier = Modifier.fillMaxWidth(),
         )
         Spacer(Modifier.height(12.dp))
-        OutlinedTextField(
+        CredentialTextField(
             value = password,
             onValueChange = onPasswordChange,
-            label = { Text("Password") },
-            singleLine = true,
-            visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            trailingIcon = {
-                TextButton(onClick = { showPassword = !showPassword }) {
-                    Text(if (showPassword) "Hide" else "Show")
-                }
-            },
-            supportingText = if (!isLogin) {
-                { Text("At least 8 characters") }
-            } else {
-                null
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .passwordAutofill(newPassword = !isLogin),
+            label = "Password",
+            kind = if (isLogin) CredentialFieldKind.Password else CredentialFieldKind.NewPassword,
+            modifier = Modifier.fillMaxWidth(),
         )
+        if (!isLogin) {
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "At least 8 characters",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         Spacer(Modifier.height(16.dp))
         Button(
             onClick = onSubmit,

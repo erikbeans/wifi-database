@@ -78,6 +78,7 @@ dependencies {
     implementation(libs.play.services.location)
     implementation(libs.osmdroid)
     implementation(libs.androidx.security.crypto)
+    implementation(libs.material.components)
 
     testImplementation(libs.junit)
     testImplementation(libs.okhttp.mockwebserver)

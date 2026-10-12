@@ -12,7 +12,8 @@ import androidx.compose.material.icons.outlined.MarkEmailRead
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -28,7 +29,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.erikbeans.wifidatabase.ui.Routes
-import com.erikbeans.wifidatabase.ui.common.emailAutofill
+import com.erikbeans.wifidatabase.ui.common.CredentialFieldKind
+import com.erikbeans.wifidatabase.ui.common.CredentialTextField
 
 @Composable
 fun CheckEmailScreen(
@@ -98,14 +100,12 @@ fun ForgotPasswordScreen(navController: NavController, viewModel: AuthViewModel 
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.height(24.dp))
-        OutlinedTextField(
+        CredentialTextField(
             value = email,
             onValueChange = { email = it },
-            label = { Text("Email") },
-            singleLine = true,
-            modifier = Modifier
-                .fillMaxWidth()
-                .emailAutofill(),
+            label = "Email",
+            kind = CredentialFieldKind.Email,
+            modifier = Modifier.fillMaxWidth(),
         )
         Spacer(Modifier.height(16.dp))
         Button(

@@ -14,7 +14,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -25,12 +24,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -39,7 +34,8 @@ import androidx.navigation.NavController
 import com.erikbeans.wifidatabase.data.api.ApiResult
 import com.erikbeans.wifidatabase.domain.repository.AuthRepository
 import com.erikbeans.wifidatabase.ui.Routes
-import com.erikbeans.wifidatabase.ui.common.passwordAutofill
+import com.erikbeans.wifidatabase.ui.common.CredentialFieldKind
+import com.erikbeans.wifidatabase.ui.common.CredentialTextField
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -129,7 +125,6 @@ fun VerifyScreen(navController: NavController, token: String, viewModel: VerifyV
 @Composable
 fun ResetPasswordScreen(navController: NavController, token: String, viewModel: AuthViewModel = hiltViewModel()) {
     var password by rememberSaveable { mutableStateOf("") }
-    var showPassword by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
@@ -154,22 +149,18 @@ fun ResetPasswordScreen(navController: NavController, token: String, viewModel: 
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.height(24.dp))
-        OutlinedTextField(
+        CredentialTextField(
             value = password,
             onValueChange = { password = it },
-            label = { Text("New password") },
-            singleLine = true,
-            visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            trailingIcon = {
-                TextButton(onClick = { showPassword = !showPassword }) {
-                    Text(if (showPassword) "Hide" else "Show")
-                }
-            },
-            supportingText = { Text("At least 8 characters") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .passwordAutofill(newPassword = true),
+            label = "New password",
+            kind = CredentialFieldKind.NewPassword,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            "At least 8 characters",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.height(16.dp))
         Button(
