@@ -43,6 +43,9 @@ Two deliverables:
   abuse reporting are in MVP scope (§4, §5).
 - No background scanning or background location — everything foreground.
 - The server is a plain REST API; no web frontend.
+- No paywalls or paid features. The only monetization is an optional,
+  hard-capped donation prompt (§7, "Donations"); donations never unlock
+  functionality.
 
 ## 2. System architecture
 
@@ -389,6 +392,7 @@ android/app/src/main/java/.../
     ├── search/              # SearchScreen (name search / radius list)
     ├── share/               # ShareScreen (pick SSID, enter password, consent)
     ├── map/                 # MapScreen (osmdroid)
+    ├── settings/            # SettingsScreen (account, logout, support)
     └── detail/              # DetailSheet / DetailScreen (reveal + copy)
 ```
 
@@ -425,7 +429,31 @@ android/app/src/main/java/.../
    with the user's own vote reflected; "Copy" defaults to the selected row;
    after copying, a "Did it work?" prompt drives voting. Row overflow offers
    "Report" with a reason picker. Delete buttons for the user's own AP or
-   password candidates.
+   password candidates. The "Did it work?" confirmation is also the only
+   place the donation card may ever appear (see "Donations" below).
+
+### Donations
+
+Optional, deliberately subtle support for development costs, via GitHub
+Sponsors (`https://github.com/sponsors/erikbeans` — 0% platform fee,
+one-time or monthly, cards handled by GitHub/Stripe). Tap opens the
+sponsors page in the system browser — the app never touches payment data.
+
+- **Always available:** a "Support development" row in Settings (heart
+  icon). Silent, discoverable, never pushed.
+- **Contextual ask, hard-capped:** after the user confirms a password
+  worked ("Did it work?" → Yes), an inline dismissible card may appear —
+  "Glad it worked! If you'd like to support WiFi Database →" with
+  **Not now** and **Never**. Shown at most **2 times per account
+  lifetime**, never before the 3rd confirmed-working password. "Never"
+  suppresses it permanently; "Not now" defers at least 10 further
+  confirmed-working passwords.
+- **Never:** modals, splash/auth placement, repeat drives, or anything
+  that blocks a task.
+- **Zero server involvement:** no donation state in the backend, no
+  accounts tied, nothing unlocked. Ask state (counter + never flag) is
+  local-only on the device. Label everything "support development," not
+  charity.
 
 ### Repository pattern
 
@@ -455,6 +483,9 @@ android/app/src/main/java/.../
 - Input validation on both client and server (lengths, lat/lon bounds, MAC
   format).
 - Share screen copy warns that submitted passwords become public.
+- Donations are fully external (GitHub Sponsors in the system browser):
+  no payment data, no donation records, and no donation-related API
+  endpoints exist.
 
 ## 9. Repo layout and tooling
 
@@ -479,7 +510,7 @@ android/app/src/main/java/.../
 | 1 — Server core | Auth (register/verify/login/refresh/lockout/reset/delete), encryption, APs + password candidates, votes/ranking, reports/auto-flag, audit log, geo queries, rate limits, tests | Register→verify→login round-trip; unverified account blocked from reveal/submit/vote/report; refresh rotation invalidates the old token; locked account rejected with uniform 401s; near/bbox/search verified against seeded PostGIS data; password decrypt round-trip; vote upsert adjusts counts; identical resubmission becomes an upvote; 3 reports auto-flag a candidate; audit rows written for reveal/submit/vote/report; tests pass |
 | 2 — App core | Auth + verification-deeplink UI, nearby list, share flow, search, detail/copy, voting + report UI | End-to-end on device: register → verify email → scan → share → second account copies the top password → votes up/down and ordering updates → reports an entry |
 | 3 — Map | MapScreen with viewport pins + detail sheet | Pins load while panning within bbox; tap → detail → copy |
-| 4 — Polish | Empty states, error handling, permission edge cases, icons | UX review pass; airplane/throttled-scan cases handled gracefully |
+| 4 — Polish | Empty states, error handling, permission edge cases, icons, donation prompts (Settings row + capped post-success card → GitHub Sponsors) | UX review pass; airplane/throttled-scan cases handled gracefully; donation caps honored (≤2 asks per lifetime, "Never" respected, nothing gated) |
 
 ### Post-MVP backlog
 
