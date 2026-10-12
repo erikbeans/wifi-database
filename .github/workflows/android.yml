@@ -14,6 +14,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - uses: actions/checkout@v4
@@ -40,3 +42,15 @@ jobs:
         with:
           name: debug-apk
           path: android/app/build/outputs/apk/debug/*.apk
+
+      - name: Publish rolling debug release
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete debug-latest --yes --cleanup-tag || true
+          gh release create debug-latest \
+            android/app/build/outputs/apk/debug/app-debug.apk \
+            --title "Latest debug build" \
+            --notes "Automated debug build from commit $GITHUB_SHA." \
+            --prerelease

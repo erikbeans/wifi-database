@@ -1,7 +1,10 @@
 package com.erikbeans.wifidatabase.ui.nearby
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -27,17 +30,28 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import com.erikbeans.wifidatabase.domain.model.NearbyRow
 import com.erikbeans.wifidatabase.ui.Routes
@@ -50,24 +64,48 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun NearbyScreen(navController: NavController, viewModel: NearbyViewModel = hiltViewModel()) {
     val context = LocalContext.current
-    var hasPermission = ContextCompat.checkSelfPermission(
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    fun hasFineLocation(): Boolean = ContextCompat.checkSelfPermission(
         context, Manifest.permission.ACCESS_FINE_LOCATION
     ) == PackageManager.PERMISSION_GRANTED
+
+    var hasPermission by remember { mutableStateOf(hasFineLocation()) }
+    var refreshedWithPermission by rememberSaveable { mutableStateOf(false) }
+
+    fun onPermissionStateMaybeChanged() {
+        val grantedNow = hasFineLocation()
+        if (grantedNow && !refreshedWithPermission) {
+            refreshedWithPermission = true
+            viewModel.refresh()
+        }
+        hasPermission = grantedNow
+    }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { _ ->
-        viewModel.refresh()
+        onPermissionStateMaybeChanged()
     }
 
     LaunchedEffect(Unit) {
         if (hasPermission) {
-            viewModel.refresh()
+            onPermissionStateMaybeChanged()
         } else {
             permissionLauncher.launch(
                 arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
             )
         }
+    }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                onPermissionStateMaybeChanged()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     Scaffold(
@@ -122,14 +160,24 @@ fun NearbyScreen(navController: NavController, viewModel: NearbyViewModel = hilt
                 UnverifiedBanner(Modifier.padding(horizontal = 16.dp))
             }
             if (!hasPermission) {
-                PermissionRationale {
-                    permissionLauncher.launch(
-                        arrayOf(
-                            Manifest.permission.ACCESS_FINE_LOCATION,
-                            Manifest.permission.ACCESS_COARSE_LOCATION,
+                PermissionRationale(
+                    onRequest = {
+                        permissionLauncher.launch(
+                            arrayOf(
+                                Manifest.permission.ACCESS_FINE_LOCATION,
+                                Manifest.permission.ACCESS_COARSE_LOCATION,
+                            )
                         )
-                    )
-                }
+                    },
+                    onOpenSettings = {
+                        context.startActivity(
+                            Intent(
+                                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                Uri.fromParts("package", context.packageName, null),
+                            )
+                        )
+                    },
+                )
             } else {
                 NearbyList(
                     state = viewModel.state,
@@ -232,7 +280,7 @@ private fun UnverifiedBanner(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun PermissionRationale(onRequest: () -> Unit) {
+private fun PermissionRationale(onRequest: () -> Unit, onOpenSettings: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -245,13 +293,18 @@ private fun PermissionRationale(onRequest: () -> Unit) {
         Text(
             "WiFi Database needs your location permission to scan nearby networks " +
                 "and find access points around you. Android requires location access " +
-                "for WiFi scan results — your location is only used to power this app.",
+                "for WiFi scan results — your location is only used to power this app. " +
+                "If you chose \"Approximate\" location, switch to \"Precise\" to make scans work.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.height(16.dp))
         Button(onClick = onRequest) {
             Text("Grant location permission")
+        }
+        Spacer(Modifier.height(8.dp))
+        OutlinedButton(onClick = onOpenSettings) {
+            Text("Open app settings")
         }
     }
 }
