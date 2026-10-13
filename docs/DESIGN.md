@@ -419,8 +419,11 @@ android/app/src/main/java/.../
    refresh button, respecting scan throttling.
 3. **Share:** pick a scanned network from a dropdown (SSID/BSSID/security
    prefilled; manual entry is not offered) → password field (show/hide) →
-   current GPS coordinates displayed and editable-by-map-pin optional →
-   required consent checkbox → submit → optimistic update of nearby list.
+   current GPS coordinates shown on an embedded mini-map with a draggable
+   pin: the contributor can correct the router's position by dragging
+   (limited to 500 m from the GPS fix) and confirms with "use this
+   location" → required consent checkbox → submit → optimistic update of
+   nearby list.
    If the AP already exists (BSSID match) the UI says "added as an
    alternative password"; if the password is identical to an existing
    candidate it becomes an upvote, and the UI says so. (Treat 200 and 201
@@ -526,7 +529,7 @@ sponsors page in the system browser — the app never touches payment data.
 | 0 — Scaffold | Repo skeleton: `server/`, `android/`, docker compose, CI | `docker compose up` serves `/healthz`; app builds; CI green |
 | 1 — Server core | Auth (register/verify/login/refresh/lockout/reset/delete), encryption, APs + password candidates, votes/ranking, reports/auto-flag, audit log, geo queries, rate limits, tests | Register→verify→login round-trip; unverified account blocked from reveal/submit/vote/report; refresh rotation invalidates the old token; locked account rejected with uniform 401s; near/bbox/search verified against seeded PostGIS data; password decrypt round-trip; vote upsert adjusts counts; identical resubmission becomes an upvote; 3 reports auto-flag a candidate; audit rows written for reveal/submit/vote/report; tests pass |
 | 2 — App core | Auth + verification-deeplink UI, nearby list, share flow, search, detail/copy, voting + report UI | End-to-end on device: register → verify email → scan → share → second account copies the top password → votes up/down and ordering updates → reports an entry |
-| 3 — Map | MapScreen with viewport pins + detail sheet | Pins load while panning within bbox; tap → detail → copy |
+| 3 — Map | MapScreen with viewport pins + detail sheet; draggable location pin on the share flow | Pins load while panning within bbox; tap → detail → copy; share flow accepts a dragged pin within 500 m of the GPS fix |
 | 4 — Polish | Empty states, error handling, permission edge cases, icons, donation prompts (Settings row + capped post-success card → GitHub Sponsors) | UX review pass; airplane/throttled-scan cases handled gracefully; donation caps honored (≤2 asks per lifetime, "Never" respected, nothing gated) |
 
 ### Post-MVP backlog
@@ -541,15 +544,19 @@ sponsors page in the system browser — the app never touches payment data.
 
 ## 11. Open questions
 
-1. Deployment target for the server (VPS with docker compose vs. a managed
-   host) — affects TLS setup and secret storage.
-2. Default search radius (proposed 500 m) and whether the map shows only
-   authenticated results or requires sign-in first (currently: sign-in first).
-3. SMTP provider and sender domain for verification/reset email (the security
-   review pulled these flows into MVP).
-4. Whether the share flow should let users drag the pin to correct the AP
-   location (cheap to add since the map exists; proposed yes).
-5. ToS/privacy policy text for the consent step.
+1. **[Resolved 2026-10-13]** Deployment target — Oracle Cloud Always Free
+   VM (this repo's compose stack + Caddy) at `wifidb.clickbeans.com`.
+2. **[Resolved 2026-10-13]** Default search radius 500 m (max 5 km); the
+   map requires sign-in.
+3. **[Resolved 2026-10-13]** SMTP — Brevo transactional relay, sender
+   `no-reply@clickbeans.com`.
+4. **[Resolved 2026-10-13]** Pin-drag location correction in the share
+   flow — yes: embedded mini-map with a draggable pin starting at the GPS
+   fix, a "use this location" confirm, and a 500 m drag-radius guard.
+   Ships with Phase 3 (osmdroid work). Server change: none.
+5. ToS/privacy policy text for the consent step — a privacy statement is
+   drafted in `docs/PRIVACY.md`; ToS text and in-app surfacing of both
+   remain open (Phase 4).
 6. Vote mechanics: collapse threshold for weak passwords (proposed score −3),
    whether scores decay over time, and whether voting should require having
-   opened the password (anti-brigading).
+   opened the password (anti-brigading) — post-MVP tuning.
