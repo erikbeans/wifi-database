@@ -16,6 +16,7 @@ playServicesLocation = "21.3.0"
 securityCrypto = "1.1.0-alpha06"
 materialComponents = "1.12.0"
 junit = "4.13.2"
+robolectric = "4.16.1"
 
 [libraries]
 compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
@@ -42,6 +43,7 @@ play-services-location = { module = "com.google.android.gms:play-services-locati
 material-components = { module = "com.google.android.material:material", version.ref = "materialComponents" }
 osmdroid = { module = "org.osmdroid:osmdroid-android", version.ref = "osmdroid" }
 junit = { module = "junit:junit", version.ref = "junit" }
+robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

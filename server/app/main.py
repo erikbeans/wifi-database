@@ -1,4 +1,6 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import Response
+from pydantic import BaseModel, Field
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
@@ -7,6 +9,10 @@ from app import link_pages
 from app.access_points.router import access_points_router, passwords_router, reports_router
 from app.auth.router import router as auth_router
 from app.ratelimits import limiter
+
+import logging
+
+crash_logger = logging.getLogger("wifi.crashes")
 
 app = FastAPI(title="WiFi Database API", version="0.1.0")
 
@@ -38,3 +44,23 @@ def password_reset_fallback_page(token: str = ""):
 @app.get("/.well-known/assetlinks.json", include_in_schema=False)
 def assetlinks():
     return link_pages.assetlinks_response()
+
+
+class CrashReport(BaseModel):
+    stack_trace: str = Field(min_length=1, max_length=8000)
+    device_model: str = Field(default="", max_length=128)
+    android_version: str = Field(default="", max_length=64)
+    app_version: str = Field(default="", max_length=64)
+
+
+@app.post("/api/v1/crash-reports", status_code=204, include_in_schema=False)
+@limiter.limit("10/hour")
+def crash_report(request: Request, report: CrashReport):
+    crash_logger.error(
+        "CRASH model=%r android=%r app=%r trace=%s",
+        report.device_model,
+        report.android_version,
+        report.app_version,
+        report.stack_trace,
+    )
+    return Response(status_code=204)
