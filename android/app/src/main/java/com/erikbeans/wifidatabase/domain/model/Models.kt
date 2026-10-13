@@ -56,3 +56,11 @@ object SecurityTypes {
         else -> "Open"
     }
 }
+
+fun List<ScannedNetwork>.dedupeBySsid(): List<ScannedNetwork> {
+    val securityRank = mapOf("WPA3" to 0, "WPA2" to 1, "WPA" to 2, "WEP" to 3, "Open" to 4)
+    return this
+        .sortedBy { securityRank[it.security] ?: 4 }
+        .distinctBy { it.ssid.lowercase() }
+        .sortedBy { it.ssid.lowercase() }
+}

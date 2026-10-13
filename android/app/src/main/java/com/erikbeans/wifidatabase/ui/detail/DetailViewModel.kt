@@ -116,8 +116,13 @@ class DetailViewModel @Inject constructor(
                 "Wi-Fi suggestions for WiFi Database are turned off in your system settings."
             SuggestionResult.Unsupported ->
                 "This Android version can't save networks — use Copy and add it in Wi-Fi settings."
-            SuggestionResult.Failed ->
-                "Couldn't save the network — use Copy and add it in Wi-Fi settings."
+            is SuggestionResult.Failed -> {
+                val reason = listOfNotNull(
+                    result.statusCode?.let { "code ${result.statusCode}" },
+                    result.detail,
+                ).joinToString(": ")
+                "Couldn't save the network ($reason) — use Copy and add it in Wi-Fi settings."
+            }
         }
         viewModelScope.launch {
             _events.send(DetailEvent.Toast(message))

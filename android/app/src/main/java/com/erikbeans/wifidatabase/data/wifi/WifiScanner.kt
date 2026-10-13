@@ -11,6 +11,7 @@ import android.net.wifi.WifiManager
 import androidx.core.content.ContextCompat
 import com.erikbeans.wifidatabase.domain.model.ScannedNetwork
 import com.erikbeans.wifidatabase.domain.model.SecurityTypes
+import com.erikbeans.wifidatabase.domain.model.dedupeBySsid
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -78,15 +79,14 @@ internal object SnapshotFactory {
     fun from(results: List<ScanResult>): ScanSnapshot = ScanSnapshot(
         networks = results
             .filter { it.SSID.isNotBlank() }
-            .distinctBy { it.BSSID }
-            .sortedBy { it.SSID.lowercase() }
             .map {
                 ScannedNetwork(
                     ssid = it.SSID,
                     bssid = it.BSSID?.lowercase(),
                     security = SecurityTypes.fromCapabilities(it.capabilities),
                 )
-            },
+            }
+            .dedupeBySsid(),
         timestampMillis = System.currentTimeMillis(),
     )
 }
