@@ -3,16 +3,16 @@ package com.erikbeans.wifidatabase.ui.map
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -25,19 +25,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.erikbeans.wifidatabase.domain.model.NearbyAccessPoint
 import kotlinx.coroutines.delay
 import org.osmdroid.config.Configuration
+import org.osmdroid.events.MapListener
+import org.osmdroid.events.ScrollEvent
+import org.osmdroid.events.ZoomEvent
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.CustomZoomButtonsController
 import org.osmdroid.views.MapView
-import org.osmdroid.events.MapListener
-import org.osmdroid.events.ScrollEvent
-import org.osmdroid.events.ZoomEvent
 import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
@@ -49,10 +49,6 @@ fun MapScreen(navController: NavController, viewModel: MapViewModel = hiltViewMo
     var mapView by remember { mutableStateOf<MapView?>(null) }
     var markers by remember { mutableStateOf(listOf<Marker>()) }
     var myLocation by remember { mutableStateOf<MyLocationNewOverlay?>(null) }
-
-    LaunchedEffect(Unit) {
-        Configuration.getInstance().userAgentValue = context.packageName
-    }
 
     DisposableEffect(Unit) {
         onDispose {
@@ -82,51 +78,50 @@ fun MapScreen(navController: NavController, viewModel: MapViewModel = hiltViewMo
         view.invalidate()
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        val view = mapView
-        if (view == null) {
-            CircularProgressIndicator(Modifier.padding(32.dp))
-        } else {
-            androidx.compose.ui.viewinterop.AndroidView(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .weight(1f),
-                factory = { ctx ->
-                    buildMapView(ctx) { minLat, minLon, maxLat, maxLon ->
-                        viewModel.onViewportChanged(minLat, minLon, maxLat, maxLon)
-                    }.also { created ->
-                        mapView = created
-                        if (hasFineLocation(context)) {
-                            val overlay = MyLocationNewOverlay(GpsMyLocationProvider(ctx), created)
-                            overlay.enableMyLocation()
-                            created.overlays.add(overlay)
-                            myLocation = overlay
-                        }
-                        created.controller.setZoom(16.5)
-                        created.controller.setCenter(GeoPoint(37.5, -122.2))
-                        created.onResume()
+    Box(modifier = Modifier.fillMaxSize()) {
+        AndroidView(
+            modifier = Modifier.fillMaxSize(),
+            factory = { ctx ->
+                Configuration.getInstance().userAgentValue = ctx.packageName
+                buildMapView(ctx) { minLat, minLon, maxLat, maxLon ->
+                    viewModel.onViewportChanged(minLat, minLon, maxLat, maxLon)
+                }.also { created ->
+                    mapView = created
+                    if (hasFineLocation(context)) {
+                        val overlay = MyLocationNewOverlay(GpsMyLocationProvider(ctx), created)
+                        overlay.enableMyLocation()
+                        created.overlays.add(overlay)
+                        myLocation = overlay
                     }
-                },
-                update = { },
-            )
-            LaunchedEffect(view) {
-                delay(600)
-                val bounds = view.boundingBox
-                viewModel.onViewportChanged(
-                    bounds.latSouth, bounds.lonWest, bounds.latNorth, bounds.lonEast,
-                )
-            }
-            if (viewModel.state.error != null) {
-                Text(
-                    viewModel.state.error.orEmpty(),
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.labelSmall,
-                    modifier = Modifier
-                        .align(Alignment.CenterHorizontally)
-                        .padding(4.dp),
-                )
-            }
+                    created.controller.setZoom(16.5)
+                    created.controller.setCenter(GeoPoint(37.5, -122.2))
+                    created.onResume()
+                }
+            },
+            update = { },
+        )
+        if (viewModel.state.loading) {
+            CircularProgressIndicator(Modifier.align(Alignment.TopCenter).padding(12.dp))
         }
+        if (viewModel.state.error != null) {
+            Text(
+                viewModel.state.error.orEmpty(),
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(8.dp),
+            )
+        }
+    }
+
+    LaunchedEffect(mapView) {
+        val view = mapView ?: return@LaunchedEffect
+        delay(600)
+        val bounds = view.boundingBox
+        viewModel.onViewportChanged(
+            bounds.latSouth, bounds.lonWest, bounds.latNorth, bounds.lonEast,
+        )
     }
 
     viewModel.state.selected?.let { selected ->
