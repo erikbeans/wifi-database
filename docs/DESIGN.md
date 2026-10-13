@@ -25,9 +25,12 @@ Two deliverables:
 1. **Nearby list** — I open the app near a network I want to join. I see the
    networks my phone can currently scan, and the ones with a shared password
    are badged "Password available". I tap one and copy the top-ranked password.
-2. **Share** — I know the password for a network. I pick its SSID from my
-   scan results (or type it manually), enter the password, confirm the
-   captured GPS location, and submit. It is now searchable by anyone.
+2. **Share** — I know the password for a network. I pick its SSID from a
+   dropdown of the networks my phone currently scans (SSID/BSSID/security
+   prefilled), enter the password, confirm the captured GPS location, and
+   submit. It is now searchable by anyone. Manual SSID entry is not
+   offered: only networks physically present in the current scan can be
+   shared (client-enforced; see §7 "Trust boundary").
 3. **Search** — I search by network name, or ask for everything within a
    radius of my location, and get a list with distances.
 4. **Map** — I see a map of my surroundings with pins for access points in
@@ -38,7 +41,11 @@ Two deliverables:
 
 ### Explicit non-goals for MVP
 
-- No auto-joining networks (user copies the password and joins manually).
+- No silent network joining (impossible since Android 10). The detail screen's
+  primary action is **"Add to phone"** via the Wi-Fi suggestion API: the user
+  approves the system prompt once per app/network, and the phone then
+  auto-connects whenever the network is in range. Copy-to-clipboard remains
+  as a fallback (and for devices below Android 10).
 - No offline cache in MVP (post-MVP backlog); password voting, ranking, and
   abuse reporting are in MVP scope (§4, §5).
 - No background scanning or background location — everything foreground.
@@ -86,7 +93,7 @@ These are hard OS constraints that shape the app design:
 | Android 9+ (API 28) throttles WiFi scans to 4 per 2 minutes in the foreground | Scan on user demand ("Refresh" button), cache `ScanResults` with a timestamp, and show "results as of T" |
 | `minSdk = 26` (Android 8.0) chosen | Avoids oldest quirks while covering ~98% of active devices; `targetSdk = 35` |
 | SSID/BSSID of the connected network also requires location permission | Same permission gate covers it |
-| No API to join a WPA network silently (since Android 10) | MVP copies to clipboard; user joins via OS settings |
+| No API to join a WPA network silently (since Android 10) | "Add to phone" uses `WifiNetworkSuggestion` (one system-approval prompt, then auto-join in range); copy-to-clipboard fallback |
 
 ## 4. Data model
 
@@ -410,13 +417,22 @@ android/app/src/main/java/.../
    entry exists (match by BSSID when the scan provides one, else by SSID
    within radius). "Results as of T" label +
    refresh button, respecting scan throttling.
-3. **Share:** pick a scanned network (SSID/BSSID/security prefilled) or manual
-   entry → password field (show/hide) → current GPS coordinates displayed and
-   editable-by-map-pin optional → required consent checkbox → submit →
-   optimistic update of nearby list. If the AP already exists (BSSID match)
-   the UI says "added as an alternative password"; if the password is
-   identical to an existing candidate it becomes an upvote, and the UI says
-   so. (Treat 200 and 201 the same.)
+3. **Share:** pick a scanned network from a dropdown (SSID/BSSID/security
+   prefilled; manual entry is not offered) → password field (show/hide) →
+   current GPS coordinates displayed and editable-by-map-pin optional →
+   required consent checkbox → submit → optimistic update of nearby list.
+   If the AP already exists (BSSID match) the UI says "added as an
+   alternative password"; if the password is identical to an existing
+   candidate it becomes an upvote, and the UI says so. (Treat 200 and 201
+   the same.)
+
+   **Trust boundary:** the scan-only constraint is enforced by the client
+   (the dropdown). The server cannot independently verify that an SSID was
+   in the submitter's scan — any API client can POST any SSID. The server
+   validates format, records the contributor's coordinates, and relies on
+   rate limits, reports/auto-flagging, and the audit log for abuse
+   containment. Hidden networks (blank SSID in scan results) cannot be
+   selected and therefore cannot be shared in the MVP.
 4. **Search:** text query against `GET /access-points/search`, plus a "near me"
    mode using `GET /access-points/near` sorted by distance.
 5. **Map:** osmdroid `MapView` with user location + pins from
@@ -426,7 +442,8 @@ android/app/src/main/java/.../
    confirmation.
 6. **Detail:** ranked password list (top first; candidates scoring below −3
    collapse behind "show unlikely passwords"). Each row has thumbs-up/down
-   with the user's own vote reflected; "Copy" defaults to the selected row;
+   with the user's own vote reflected; **"Add to phone"** (Wi-Fi suggestion,
+   system approval prompt) is the primary action with "Copy" as fallback;
    after copying, a "Did it work?" prompt drives voting. Row overflow offers
    "Report" with a reason picker. Delete buttons for the user's own AP or
    password candidates. The "Did it work?" confirmation is also the only

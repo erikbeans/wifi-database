@@ -10,6 +10,8 @@ import com.erikbeans.wifidatabase.data.api.ApiResult
 import com.erikbeans.wifidatabase.data.api.EMAIL_UNVERIFIED
 import com.erikbeans.wifidatabase.data.local.SubmissionMemory
 import com.erikbeans.wifidatabase.data.location.LocationProvider
+import com.erikbeans.wifidatabase.data.wifi.WifiScanner
+import com.erikbeans.wifidatabase.domain.model.ScannedNetwork
 import com.erikbeans.wifidatabase.domain.repository.AccessPointRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -19,7 +21,9 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class ShareUiState(
-    val ssid: String = "",
+    val networks: List<ScannedNetwork> = emptyList(),
+    val selected: ScannedNetwork? = null,
+    val dropdownOpen: Boolean = false,
     val password: String = "",
     val showPassword: Boolean = false,
     val latitude: Double? = null,
@@ -39,6 +43,7 @@ sealed interface ShareEvent {
 class ShareViewModel @Inject constructor(
     private val accessPointRepository: AccessPointRepository,
     private val locationProvider: LocationProvider,
+    private val wifiScanner: WifiScanner,
     private val submissionMemory: SubmissionMemory,
 ) : ViewModel() {
 
@@ -48,18 +53,53 @@ class ShareViewModel @Inject constructor(
     private val _events = Channel<ShareEvent>(Channel.BUFFERED)
     val events: Flow<ShareEvent> = _events.receiveAsFlow()
 
-    fun prefill(ssid: String, bssid: String, security: String) {
-        state = state.copy(ssid = ssid)
-        if (ssid.isNotBlank()) {
-            viewModelScope.launch {
-                val location = locationProvider.awaitFix()
-                state = state.copy(latitude = location?.latitude, longitude = location?.longitude)
+    init {
+        viewModelScope.launch {
+            wifiScanner.scans.collect { snapshot ->
+                applyScan(snapshot.networks)
             }
+        }
+        applyScan(wifiScanner.currentResults().networks)
+        viewModelScope.launch {
+            val location = locationProvider.awaitFix()
+            state = state.copy(latitude = location?.latitude, longitude = location?.longitude)
         }
     }
 
-    fun updateSsid(value: String) {
-        state = state.copy(ssid = value)
+    fun preselect(ssid: String) {
+        if (ssid.isBlank()) return
+        state.networks.firstOrNull { it.ssid == ssid }?.let { network ->
+            state = state.copy(selected = network)
+        }
+    }
+
+    private fun applyScan(networks: List<ScannedNetwork>) {
+        val selected = state.selected?.let { sel ->
+            networks.firstOrNull { it.ssid == sel.ssid } ?: sel
+        }
+        state = state.copy(networks = networks, selected = selected)
+    }
+
+    fun selectNetwork(network: ScannedNetwork) {
+        state = state.copy(selected = network, dropdownOpen = false)
+    }
+
+    fun openDropdown() {
+        if (state.networks.isNotEmpty()) {
+            state = state.copy(dropdownOpen = true)
+        }
+    }
+
+    fun dismissDropdown() {
+        state = state.copy(dropdownOpen = false)
+    }
+
+    fun rescan() {
+        val started = wifiScanner.startScan()
+        applyScan(wifiScanner.currentResults().networks)
+        if (!started) {
+            state = state.copy(error = "Scan throttled by Android — wait a moment and try again.")
+        }
     }
 
     fun updatePassword(value: String) {
@@ -74,9 +114,10 @@ class ShareViewModel @Inject constructor(
         state = state.copy(consentConfirmed = !state.consentConfirmed)
     }
 
-    fun submit(bssid: String?, security: String?) {
+    fun submit() {
         val current = state
-        if (current.submitting || current.ssid.isBlank() || current.password.isBlank()) return
+        val selected = current.selected ?: return
+        if (current.submitting || current.password.isBlank()) return
         val latitude = current.latitude
         val longitude = current.longitude
         if (latitude == null || longitude == null) {
@@ -86,7 +127,7 @@ class ShareViewModel @Inject constructor(
                 state = state.copy(
                     latitude = location?.latitude,
                     longitude = location?.longitude,
-                    error = location?.let { null },
+                    error = if (location != null) null else state.error,
                 )
             }
             return
@@ -94,10 +135,10 @@ class ShareViewModel @Inject constructor(
         viewModelScope.launch {
             state = state.copy(submitting = true, error = null, unverified = false)
             val request = AccessPointCreateRequest(
-                ssid = current.ssid.trim(),
+                ssid = selected.ssid,
                 password = current.password,
-                bssid = bssid?.takeIf { it.isNotBlank() },
-                security = security?.takeIf { it.isNotBlank() },
+                bssid = selected.bssid,
+                security = selected.security,
                 latitude = latitude,
                 longitude = longitude,
                 consentConfirmed = current.consentConfirmed,

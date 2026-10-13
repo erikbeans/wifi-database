@@ -10,6 +10,8 @@ import com.erikbeans.wifidatabase.AppConfig
 import com.erikbeans.wifidatabase.data.api.ApiResult
 import com.erikbeans.wifidatabase.data.api.EMAIL_UNVERIFIED
 import com.erikbeans.wifidatabase.data.local.SubmissionMemory
+import com.erikbeans.wifidatabase.data.wifi.SuggestionResult
+import com.erikbeans.wifidatabase.data.wifi.WifiSuggester
 import com.erikbeans.wifidatabase.domain.model.AccessPointDetail
 import com.erikbeans.wifidatabase.domain.model.PasswordCandidate
 import com.erikbeans.wifidatabase.domain.repository.AccessPointRepository
@@ -41,6 +43,7 @@ class DetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val accessPointRepository: AccessPointRepository,
     private val submissionMemory: SubmissionMemory,
+    private val wifiSuggester: WifiSuggester,
 ) : ViewModel() {
 
     private val apId: String = savedStateHandle["apId"] ?: ""
@@ -99,6 +102,26 @@ class DetailViewModel @Inject constructor(
 
     fun markCopied(passwordId: String) {
         state = state.copy(copiedPasswordId = passwordId)
+    }
+
+    fun addToPhone(candidate: PasswordCandidate) {
+        val detail = state.detail ?: return
+        val result = wifiSuggester.suggest(detail.ssid, candidate.password, detail.security)
+        val message = when (result) {
+            SuggestionResult.Saved ->
+                "Added — approve the system prompt if one appears. Your phone will auto-connect in range."
+            SuggestionResult.AlreadySaved ->
+                "This network is already saved on your phone."
+            SuggestionResult.Disallowed ->
+                "Wi-Fi suggestions for WiFi Database are turned off in your system settings."
+            SuggestionResult.Unsupported ->
+                "This Android version can't save networks — use Copy and add it in Wi-Fi settings."
+            SuggestionResult.Failed ->
+                "Couldn't save the network — use Copy and add it in Wi-Fi settings."
+        }
+        viewModelScope.launch {
+            _events.send(DetailEvent.Toast(message))
+        }
     }
 
     fun vote(passwordId: String, value: Int) {

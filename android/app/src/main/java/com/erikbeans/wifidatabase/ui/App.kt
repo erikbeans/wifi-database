@@ -223,8 +223,6 @@ private fun AppNavHost(
             ShareScreen(
                 navController = navController,
                 prefilledSsid = entry.arguments?.getString("ssid").orEmpty(),
-                prefilledBssid = entry.arguments?.getString("bssid").orEmpty(),
-                prefilledSecurity = entry.arguments?.getString("security").orEmpty(),
             )
         }
         composable(

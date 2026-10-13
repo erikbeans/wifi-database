@@ -144,6 +144,7 @@ fun DetailScreen(navController: NavController, viewModel: DetailViewModel = hilt
                             CandidateCard(
                                 candidate = candidate,
                                 isMine = viewModel.isMyPassword(candidate.id),
+                                onAddToPhone = { viewModel.addToPhone(candidate) },
                                 onCopy = {
                                     clipboard.setText(AnnotatedString(candidate.password))
                                     viewModel.markCopied(candidate.id)
@@ -173,6 +174,7 @@ fun DetailScreen(navController: NavController, viewModel: DetailViewModel = hilt
                                     CandidateCard(
                                         candidate = candidate,
                                         isMine = viewModel.isMyPassword(candidate.id),
+                                        onAddToPhone = { viewModel.addToPhone(candidate) },
                                         onCopy = {
                                             clipboard.setText(AnnotatedString(candidate.password))
                                             didItWorkTarget = candidate.id
@@ -290,6 +292,7 @@ fun DetailScreen(navController: NavController, viewModel: DetailViewModel = hilt
 private fun CandidateCard(
     candidate: PasswordCandidate,
     isMine: Boolean,
+    onAddToPhone: () -> Unit,
     onCopy: () -> Unit,
     onVote: (Int) -> Unit,
     onRetract: () -> Unit,
@@ -345,7 +348,13 @@ private fun CandidateCard(
             }
             Spacer(Modifier.height(4.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Button(onClick = onCopy) {
+                Button(onClick = onAddToPhone) {
+                    Icon(Icons.Outlined.Wifi, contentDescription = null)
+                    Spacer(Modifier.width(4.dp))
+                    Text("Add to phone")
+                }
+                Spacer(Modifier.width(8.dp))
+                OutlinedButton(onClick = onCopy) {
                     Icon(Icons.Outlined.ContentCopy, contentDescription = null)
                     Spacer(Modifier.width(4.dp))
                     Text("Copy")
