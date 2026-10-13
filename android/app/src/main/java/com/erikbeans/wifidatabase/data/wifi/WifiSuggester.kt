@@ -29,6 +29,12 @@ class WifiSuggester @Inject constructor(
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
             return SuggestionResult.Unsupported
         }
+        if (password.length !in 8..63) {
+            return SuggestionResult.Failed(
+                null,
+                "password is ${password.length} characters; phones require 8–63",
+            )
+        }
         val manager = wifiManager ?: return SuggestionResult.Failed(null, "no WifiManager")
         val builder = WifiNetworkSuggestion.Builder().setSsid(ssid)
         when (security?.uppercase()) {

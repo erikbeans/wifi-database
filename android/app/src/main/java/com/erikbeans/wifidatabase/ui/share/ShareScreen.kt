@@ -137,6 +137,7 @@ fun ShareScreen(
                         Text(if (viewModel.state.showPassword) "Hide" else "Show")
                     }
                 },
+                supportingText = { Text("8–63 characters") },
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(12.dp))

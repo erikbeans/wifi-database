@@ -294,7 +294,8 @@ POST /api/v1/access-points
   as a new candidate, unless byte-identical to an existing candidate, in
   which case it becomes an automatic upvote on that candidate. Return `200`
   with the AP plus a `duplicate_password` flag; new APs return `201`.
-- Validation: SSID 1–32 bytes; password 1–63 chars; lat/lon range-checked;
+- Validation: SSID 1–32 bytes; password 8–63 chars (WPA passphrase rules —
+  shorter passwords can never be saved to a phone); lat/lon range-checked;
   bbox clamped to 2° per side; search queries ≤ 64 chars; every list endpoint
   capped at limit 100.
 

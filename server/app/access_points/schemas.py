@@ -10,7 +10,7 @@ BSSID_PATTERN = re.compile(r"^[0-9a-f]{2}(:[0-9a-f]{2}){5}$")
 
 class AccessPointCreate(BaseModel):
     ssid: str = Field(min_length=1, max_length=64)
-    password: str = Field(min_length=1, max_length=63)
+    password: str = Field(min_length=8, max_length=63)
     bssid: str | None = None
     security: str | None = Field(default=None, max_length=32)
     latitude: float = Field(ge=-90, le=90)
@@ -44,7 +44,7 @@ class AccessPointCreate(BaseModel):
 
 
 class PasswordCandidateCreate(BaseModel):
-    password: str = Field(min_length=1, max_length=63)
+    password: str = Field(min_length=8, max_length=63)
     consent_confirmed: bool
 
     @field_validator("consent_confirmed")

@@ -40,6 +40,7 @@ def test_create_validation_errors(client, registered_user):
     assert _create(client, user, bssid="not-a-mac").status_code == 422
     assert _create(client, user, latitude=91).status_code == 422
     assert _create(client, user, password="").status_code == 422
+    assert _create(client, user, password="short").status_code == 422
 
 
 def test_bssid_match_adds_candidate_without_overwrite(client, registered_user):
@@ -134,9 +135,9 @@ def test_bbox_clamped_to_two_degrees(client, registered_user):
 
 def test_search_case_insensitive_substring(client, registered_user):
     user = registered_user()
-    _create(client, user, ssid="Cafe Nero Guest", password="a")
-    _create(client, user, ssid="Cafe Solo", password="b")
-    _create(client, user, ssid="Hotel FreeWifi", password="c")
+    _create(client, user, ssid="Cafe Nero Guest", password="espresso42")
+    _create(client, user, ssid="Cafe Solo", password="password-b")
+    _create(client, user, ssid="Hotel FreeWifi", password="password-c")
 
     cafe = client.get("/api/v1/access-points/search", params={"q": "cafe"}, headers=auth_headers(user))
     assert sorted(s["ssid"] for s in cafe.json()) == ["Cafe Nero Guest", "Cafe Solo"]
