@@ -21,14 +21,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -113,11 +111,6 @@ fun NearbyScreen(navController: NavController, viewModel: NearbyViewModel = hilt
         topBar = {
             TopAppBar(
                 title = { Text("WiFi Database") },
-                actions = {
-                    IconButton(onClick = { viewModel.refresh() }) {
-                        Icon(Icons.Outlined.Refresh, contentDescription = "Refresh")
-                    }
-                },
             )
         },
         floatingActionButton = {
@@ -128,10 +121,16 @@ fun NearbyScreen(navController: NavController, viewModel: NearbyViewModel = hilt
             }
         },
     ) { padding ->
-        Column(
+        androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+            isRefreshing = viewModel.state.loading,
+            onRefresh = viewModel::refresh,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
+        ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize(),
         ) {
             if (viewModel.state.loading) {
                 CircularProgressIndicator(
@@ -142,7 +141,7 @@ fun NearbyScreen(navController: NavController, viewModel: NearbyViewModel = hilt
             }
             viewModel.state.scanTimestampMillis?.let { timestamp ->
                 Text(
-                    "Scan results as of ${formatTime(timestamp)} — tap refresh to rescan",
+                    "Scan results as of ${formatTime(timestamp)} — pull down to rescan",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
@@ -196,6 +195,7 @@ fun NearbyScreen(navController: NavController, viewModel: NearbyViewModel = hilt
                     },
                 )
             }
+        }
         }
     }
 }

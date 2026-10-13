@@ -416,8 +416,8 @@ android/app/src/main/java/.../
    each scanned SSID is matched against `GET /access-points/near` results and
    badged "Password available" with the top candidate's score when a DB
    entry exists (match by BSSID when the scan provides one, else by SSID
-   within radius). "Results as of T" label +
-   refresh button, respecting scan throttling.
+   within radius).    "Results as of T" label + pull-to-refresh
+   (drag down from the top of the list), respecting scan throttling.
 3. **Share:** pick a scanned network from a dropdown (SSID/BSSID/security
    prefilled; manual entry is not offered) → password field (show/hide) →
    current GPS coordinates shown on an embedded mini-map with a draggable
