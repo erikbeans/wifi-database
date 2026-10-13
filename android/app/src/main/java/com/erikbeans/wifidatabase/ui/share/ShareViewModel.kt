@@ -11,6 +11,7 @@ import com.erikbeans.wifidatabase.data.api.EMAIL_UNVERIFIED
 import com.erikbeans.wifidatabase.data.local.SubmissionMemory
 import com.erikbeans.wifidatabase.data.location.LocationProvider
 import com.erikbeans.wifidatabase.data.wifi.WifiScanner
+import com.erikbeans.wifidatabase.domain.GeoMath
 import com.erikbeans.wifidatabase.domain.model.ScannedNetwork
 import com.erikbeans.wifidatabase.domain.repository.AccessPointRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -26,8 +27,11 @@ data class ShareUiState(
     val dropdownOpen: Boolean = false,
     val password: String = "",
     val showPassword: Boolean = false,
-    val latitude: Double? = null,
-    val longitude: Double? = null,
+    val gpsFixLatitude: Double? = null,
+    val gpsFixLongitude: Double? = null,
+    val pinLatitude: Double? = null,
+    val pinLongitude: Double? = null,
+    val mapExpanded: Boolean = false,
     val consentConfirmed: Boolean = false,
     val submitting: Boolean = false,
     val error: String? = null,
@@ -62,8 +66,43 @@ class ShareViewModel @Inject constructor(
         applyScan(wifiScanner.currentResults().networks)
         viewModelScope.launch {
             val location = locationProvider.awaitFix()
-            state = state.copy(latitude = location?.latitude, longitude = location?.longitude)
+            if (location != null) {
+                state = state.copy(
+                    gpsFixLatitude = location.latitude,
+                    gpsFixLongitude = location.longitude,
+                    pinLatitude = location.latitude,
+                    pinLongitude = location.longitude,
+                )
+            }
         }
+    }
+
+    fun expandMap() {
+        state = state.copy(mapExpanded = true)
+    }
+
+    fun collapseMap() {
+        state = state.copy(mapExpanded = false)
+    }
+
+    fun adjustPin(lat: Double, lon: Double) {
+        val fixLat = state.gpsFixLatitude ?: return
+        val fixLon = state.gpsFixLongitude ?: return
+        val (clampedLat, clampedLon) = GeoMath.clampToRadius(fixLat, fixLon, lat, lon, PIN_RADIUS_METERS)
+        val wasClamped = clampedLat != lat || clampedLon != lon
+        state = state.copy(
+            pinLatitude = clampedLat,
+            pinLongitude = clampedLon,
+            error = if (wasClamped) {
+                "Pin is limited to 500 m from your GPS fix"
+            } else {
+                state.error?.takeIf { it != "Pin is limited to 500 m from your GPS fix" }
+            },
+        )
+    }
+
+    fun useThisLocation() {
+        state = state.copy(mapExpanded = false)
     }
 
     fun preselect(ssid: String) {
@@ -118,17 +157,21 @@ class ShareViewModel @Inject constructor(
         val current = state
         val selected = current.selected ?: return
         if (current.submitting || current.password.isBlank()) return
-        val latitude = current.latitude
-        val longitude = current.longitude
+        val latitude = current.pinLatitude ?: current.gpsFixLatitude
+        val longitude = current.pinLongitude ?: current.gpsFixLongitude
         if (latitude == null || longitude == null) {
             state = current.copy(error = "Waiting for a GPS fix — stand by a moment and try again.")
             viewModelScope.launch {
                 val location = locationProvider.awaitFix()
-                state = state.copy(
-                    latitude = location?.latitude,
-                    longitude = location?.longitude,
-                    error = if (location != null) null else state.error,
-                )
+                if (location != null) {
+                    state = state.copy(
+                        gpsFixLatitude = location.latitude,
+                        gpsFixLongitude = location.longitude,
+                        pinLatitude = location.latitude,
+                        pinLongitude = location.longitude,
+                        error = null,
+                    )
+                }
             }
             return
         }
@@ -169,5 +212,9 @@ class ShareViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    private companion object {
+        const val PIN_RADIUS_METERS = 500.0
     }
 }

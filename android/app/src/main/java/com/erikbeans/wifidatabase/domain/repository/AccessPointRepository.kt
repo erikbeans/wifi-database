@@ -30,6 +30,14 @@ class AccessPointRepository @Inject constructor(
     suspend fun search(query: String): ApiResult<List<AccessPointSummaryDto>> =
         apiCall { api.search(query) }
 
+    suspend fun inBbox(
+        minLat: Double,
+        minLon: Double,
+        maxLat: Double,
+        maxLon: Double,
+    ): ApiResult<List<AccessPointSummaryDto>> =
+        apiCall { api.inBbox(minLat, minLon, maxLat, maxLon) }
+
     suspend fun detail(apId: String): ApiResult<AccessPointDetailDto> =
         apiCall { api.detail(apId) }
 

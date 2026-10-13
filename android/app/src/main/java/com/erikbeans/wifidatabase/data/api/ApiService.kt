@@ -23,6 +23,15 @@ interface ApiService {
         @Query("limit") limit: Int = 100,
     ): List<AccessPointSummaryDto>
 
+    @GET("api/v1/access-points/in-bbox")
+    suspend fun inBbox(
+        @Query("min_lat") minLat: Double,
+        @Query("min_lon") minLon: Double,
+        @Query("max_lat") maxLat: Double,
+        @Query("max_lon") maxLon: Double,
+        @Query("limit") limit: Int = 100,
+    ): List<AccessPointSummaryDto>
+
     @GET("api/v1/access-points/{id}")
     suspend fun detail(@Path("id") apId: String): AccessPointDetailDto
 

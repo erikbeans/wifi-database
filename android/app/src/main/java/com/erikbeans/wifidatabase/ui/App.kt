@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.NearMe
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
@@ -45,6 +46,7 @@ import com.erikbeans.wifidatabase.ui.auth.RegisterScreen
 import com.erikbeans.wifidatabase.ui.auth.ResetPasswordScreen
 import com.erikbeans.wifidatabase.ui.auth.VerifyScreen
 import com.erikbeans.wifidatabase.ui.detail.DetailScreen
+import com.erikbeans.wifidatabase.ui.map.MapScreen
 import com.erikbeans.wifidatabase.ui.nearby.NearbyScreen
 import com.erikbeans.wifidatabase.ui.search.SearchScreen
 import com.erikbeans.wifidatabase.ui.settings.SettingsScreen
@@ -61,11 +63,12 @@ object Routes {
     const val RESET_PASSWORD = "reset-password?token={token}"
     const val NEARBY = "nearby"
     const val SEARCH = "search"
+    const val MAP = "map"
     const val SETTINGS = "settings"
     const val SHARE = "share?ssid={ssid}&bssid={bssid}&security={security}"
     const val DETAIL = "detail/{apId}"
 
-    val topLevel = listOf(NEARBY, SEARCH, SETTINGS)
+    val topLevel = listOf(NEARBY, SEARCH, MAP, SETTINGS)
 }
 
 fun shareRoute(ssid: String?, bssid: String?, security: String?): String =
@@ -150,6 +153,12 @@ private fun BottomBar(navController: NavHostController, currentRoute: String?) {
             label = { Text("Search") },
         )
         NavigationBarItem(
+            selected = currentRoute == Routes.MAP,
+            onClick = { navController.navigateToTopLevel(Routes.MAP) },
+            icon = { Icon(Icons.Outlined.Map, contentDescription = null) },
+            label = { Text("Map") },
+        )
+        NavigationBarItem(
             selected = currentRoute == Routes.SETTINGS,
             onClick = { navController.navigateToTopLevel(Routes.SETTINGS) },
             icon = { Icon(Icons.Outlined.Settings, contentDescription = null) },
@@ -211,6 +220,7 @@ private fun AppNavHost(
         }
         composable(Routes.NEARBY) { NearbyScreen(navController) }
         composable(Routes.SEARCH) { SearchScreen(navController) }
+        composable(Routes.MAP) { MapScreen(navController) }
         composable(Routes.SETTINGS) { SettingsScreen(navController) }
         composable(
             route = Routes.SHARE,

@@ -141,16 +141,35 @@ fun ShareScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(12.dp))
-            val coords = viewModel.state.latitude
-            if (coords != null) {
+            val pinLat = viewModel.state.pinLatitude
+            val pinLon = viewModel.state.pinLongitude
+            if (pinLat != null && pinLon != null) {
                 Text(
-                    "Location: %.5f, %.5f (from your GPS fix — approximate router position)".format(
-                        viewModel.state.latitude,
-                        viewModel.state.longitude,
-                    ),
+                    "Location: %.5f, %.5f".format(pinLat, pinLon) +
+                        " (approximate router position — drag the pin on the map to correct it)",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                if (viewModel.state.mapExpanded) {
+                    Spacer(Modifier.height(8.dp))
+                    LocationPickerMap(
+                        latitude = pinLat,
+                        longitude = pinLon,
+                        onPinMoved = viewModel::adjustPin,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(220.dp),
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Button(onClick = viewModel::useThisLocation, modifier = Modifier.fillMaxWidth()) {
+                        Text("Use this location")
+                    }
+                } else {
+                    Spacer(Modifier.height(4.dp))
+                    OutlinedButton(onClick = viewModel::expandMap) {
+                        Text("Adjust on map")
+                    }
+                }
             } else {
                 Text(
                     "Getting your GPS location…",
