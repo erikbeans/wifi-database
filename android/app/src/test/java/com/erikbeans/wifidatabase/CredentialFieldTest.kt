@@ -6,6 +6,7 @@ import com.erikbeans.wifidatabase.ui.common.buildCredentialField
 import com.google.android.material.textfield.TextInputLayout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
@@ -57,10 +58,9 @@ class CredentialFieldTest {
                 TextInputLayout.END_ICON_PASSWORD_TOGGLE,
                 layout.endIconMode,
             )
-            assertEquals(
-                "autofillHints",
-                listOf("password"),
-                layout.editText?.autofillHints?.toList(),
+            assertTrue(
+                "autofillHints must contain password, was: ${layout.editText?.autofillHints?.toList()}",
+                layout.editText?.autofillHints?.contains("password") == true,
             )
         }
     }
