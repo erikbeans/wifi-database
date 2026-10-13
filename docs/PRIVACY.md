@@ -5,7 +5,7 @@ _Last updated: October 13, 2026_
 WiFi Database is a community directory of WiFi access point passwords. This
 statement describes what the app and its server do — and don't do — with your
 data. "We" is the project operator; the service is reachable at
-openclaw.clickbeans.com.
+wifidb.clickbeans.com.
 
 ## What we store
 

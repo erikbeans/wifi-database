@@ -13,7 +13,7 @@ def test_register_sends_verification_email(client, sent_emails, db):
     to, subject, body = sent_emails[0]
     assert to == "new@example.com"
     assert "verify" in subject.lower()
-    assert "https://openclaw.clickbeans.com/verify?token=" in body
+    assert "https://wifidb.clickbeans.com/verify?token=" in body
 
 
 def test_register_with_existing_email_is_indistinguishable(client, registered_user, sent_emails):

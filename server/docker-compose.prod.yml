@@ -27,7 +27,7 @@ services:
       WIFI_SMTP_PORT: ${WIFI_SMTP_PORT:-1025}
       WIFI_SMTP_USER: ${WIFI_SMTP_USER:-}
       WIFI_SMTP_PASSWORD: ${WIFI_SMTP_PASSWORD:-}
-      WIFI_SMTP_FROM: ${WIFI_SMTP_FROM:-no-reply@openclaw.clickbeans.com}
+      WIFI_SMTP_FROM: ${WIFI_SMTP_FROM:-no-reply@wifidb.clickbeans.com}
       WIFI_ANDROID_SHA256_FINGERPRINTS: ${WIFI_ANDROID_SHA256_FINGERPRINTS:-[]}
     depends_on:
       db:

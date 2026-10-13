@@ -194,7 +194,7 @@ private fun AppNavHost(
             arguments = listOf(navArgument("token") { type = NavType.StringType; defaultValue = "" }),
             deepLinks = listOf(
                 navDeepLink { uriPattern = "wifidatabase://verify?token={token}" },
-                navDeepLink { uriPattern = "https://openclaw.clickbeans.com/verify?token={token}" },
+                navDeepLink { uriPattern = "https://wifidb.clickbeans.com/verify?token={token}" },
             ),
         ) { entry ->
             VerifyScreen(navController, entry.arguments?.getString("token").orEmpty())
@@ -204,7 +204,7 @@ private fun AppNavHost(
             arguments = listOf(navArgument("token") { type = NavType.StringType; defaultValue = "" }),
             deepLinks = listOf(
                 navDeepLink { uriPattern = "wifidatabase://password-reset?token={token}" },
-                navDeepLink { uriPattern = "https://openclaw.clickbeans.com/password-reset?token={token}" },
+                navDeepLink { uriPattern = "https://wifidb.clickbeans.com/password-reset?token={token}" },
             ),
         ) { entry ->
             ResetPasswordScreen(navController, entry.arguments?.getString("token").orEmpty())
