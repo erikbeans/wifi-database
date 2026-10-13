@@ -52,8 +52,16 @@ class CredentialFieldTest {
     fun `new password field exposes password toggle and hint`() {
         withActivity { activity ->
             val layout = buildCredentialField(activity, CredentialFieldKind.NewPassword, "New password") {}
-            assertEquals(TextInputLayout.END_ICON_PASSWORD_TOGGLE, layout.endIconMode)
-            assertEquals(listOf("password"), layout.editText?.autofillHints?.toList())
+            assertEquals(
+                "endIconMode",
+                TextInputLayout.END_ICON_PASSWORD_TOGGLE,
+                layout.endIconMode,
+            )
+            assertEquals(
+                "autofillHints",
+                listOf("password"),
+                layout.editText?.autofillHints?.toList(),
+            )
         }
     }
 }

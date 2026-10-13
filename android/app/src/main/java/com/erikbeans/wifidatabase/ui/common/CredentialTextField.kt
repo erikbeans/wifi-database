@@ -46,13 +46,13 @@ internal fun buildCredentialField(
         }
     }
     layout.addView(editText)
+    if (kind != CredentialFieldKind.Email) {
+        layout.endIconMode = TextInputLayout.END_ICON_PASSWORD_TOGGLE
+    }
     when (kind) {
         CredentialFieldKind.Email -> editText.setAutofillHints(android.view.View.AUTOFILL_HINT_EMAIL_ADDRESS)
         CredentialFieldKind.Password -> editText.setAutofillHints(android.view.View.AUTOFILL_HINT_PASSWORD)
         CredentialFieldKind.NewPassword -> editText.setAutofillHints(android.view.View.AUTOFILL_HINT_PASSWORD)
-    }
-    if (kind != CredentialFieldKind.Email) {
-        layout.endIconMode = TextInputLayout.END_ICON_PASSWORD_TOGGLE
     }
     return layout
 }
