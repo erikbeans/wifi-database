@@ -309,14 +309,19 @@ then recency; `my_vote` is the caller's current vote):
   "security": "WPA2",
   "latitude": 47.6062,
   "longitude": -122.3321,
+  "mine": true,
   "passwords": [
     { "id": "p-1", "password": "espresso42", "up_votes": 12,
-      "down_votes": 1, "score": 11, "my_vote": 1 },
+      "down_votes": 1, "score": 11, "my_vote": 1, "mine": true },
     { "id": "p-2", "password": "nero2023", "up_votes": 2,
-      "down_votes": 5, "score": -3, "my_vote": null }
+      "down_votes": 5, "score": -3, "my_vote": null, "mine": false }
   ]
 }
 ```
+
+The detail response carries a per-viewer `mine` flag on the AP and on each
+candidate — true when the signed-in user submitted it — so the app can offer
+delete buttons without ever exposing contributor identity to other viewers.
 
 **Rate limits (defaults, tunable):** 60 req/min per IP; 20 submissions per day
 per user; 200 votes/day per user; 20 reports/day per user; detail fetches

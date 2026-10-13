@@ -25,6 +25,7 @@ data class PasswordCandidate(
     val downVotes: Int,
     val score: Int,
     val myVote: Int?,
+    val mine: Boolean,
 )
 
 data class AccessPointDetail(
@@ -35,6 +36,7 @@ data class AccessPointDetail(
     val latitude: Double,
     val longitude: Double,
     val passwords: List<PasswordCandidate>,
+    val mine: Boolean,
 )
 
 data class NearbyRow(

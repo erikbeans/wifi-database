@@ -181,6 +181,13 @@ def test_detail_ranking_and_my_vote(client, registered_user, sample_ap):
     assert passwords[0]["score"] == 1
     my_votes = {p["password"]: p["my_vote"] for p in passwords}
     assert my_votes == {"backup-pass": 1, "espresso42": -1}
+    assert detail.json()["mine"] is False
+    assert all(p["mine"] is False for p in passwords)
+
+    owner_view = client.get(f"/api/v1/access-points/{ap_id}", headers=auth_headers(sample_ap["user"]))
+    assert owner_view.status_code == 200
+    assert owner_view.json()["mine"] is True
+    assert all(p["mine"] for p in owner_view.json()["passwords"])
 
 
 def test_detail_404(client, registered_user):

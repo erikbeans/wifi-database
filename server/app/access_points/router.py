@@ -44,6 +44,7 @@ def _detail_payload(
             down_votes=password_row.down_votes,
             score=password_row.score,
             my_vote=my_vote,
+            mine=password_row.submitted_by == viewer_id,
         )
         for password_row, my_vote in rows
     ]
@@ -56,6 +57,7 @@ def _detail_payload(
         longitude=ap.longitude,
         passwords=candidates,
         duplicate_password=duplicate,
+        mine=ap.submitted_by == viewer_id,
     )
 
 

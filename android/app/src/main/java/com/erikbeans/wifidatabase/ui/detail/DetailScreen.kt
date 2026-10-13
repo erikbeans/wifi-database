@@ -143,7 +143,7 @@ fun DetailScreen(navController: NavController, viewModel: DetailViewModel = hilt
                         items(viewModel.ranked()) { candidate ->
                             CandidateCard(
                                 candidate = candidate,
-                                isMine = viewModel.isMyPassword(candidate.id),
+                                isMine = viewModel.isMine(candidate),
                                 onAddToPhone = { viewModel.addToPhone(candidate) },
                                 onCopy = {
                                     clipboard.setText(AnnotatedString(candidate.password))
@@ -173,7 +173,7 @@ fun DetailScreen(navController: NavController, viewModel: DetailViewModel = hilt
                                 items(unlikely) { candidate ->
                                     CandidateCard(
                                         candidate = candidate,
-                                        isMine = viewModel.isMyPassword(candidate.id),
+                                        isMine = viewModel.isMine(candidate),
                                         onAddToPhone = { viewModel.addToPhone(candidate) },
                                         onCopy = {
                                             clipboard.setText(AnnotatedString(candidate.password))

@@ -58,9 +58,12 @@ class DetailViewModel @Inject constructor(
         load()
     }
 
-    fun isMyPassword(passwordId: String): Boolean = submissionMemory.isMyPassword(passwordId)
+    fun isMine(candidate: PasswordCandidate): Boolean =
+        candidate.mine || submissionMemory.isMyPassword(candidate.id)
 
-    fun isMyAccessPoint(): Boolean = state.detail?.let { submissionMemory.isMyAccessPoint(it.id) } ?: false
+    fun isMyAccessPoint(): Boolean =
+        state.detail?.mine == true ||
+            state.detail?.let { submissionMemory.isMyAccessPoint(it.id) } == true
 
     fun load() {
         viewModelScope.launch {
@@ -75,6 +78,7 @@ class DetailViewModel @Inject constructor(
                         security = result.data.security,
                         latitude = result.data.latitude,
                         longitude = result.data.longitude,
+                        mine = result.data.mine,
                         passwords = result.data.passwords.map {
                             PasswordCandidate(
                                 id = it.id,
@@ -83,6 +87,7 @@ class DetailViewModel @Inject constructor(
                                 downVotes = it.downVotes,
                                 score = it.score,
                                 myVote = it.myVote,
+                                mine = it.mine,
                             )
                         },
                     ),

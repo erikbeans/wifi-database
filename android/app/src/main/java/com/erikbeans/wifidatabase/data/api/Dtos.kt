@@ -66,6 +66,7 @@ data class PasswordCandidateDto(
     @SerialName("down_votes") val downVotes: Int = 0,
     val score: Int = 0,
     @SerialName("my_vote") val myVote: Int? = null,
+    val mine: Boolean = false,
 )
 
 @Serializable
@@ -93,6 +94,7 @@ data class AccessPointDetailDto(
     val longitude: Double,
     val passwords: List<PasswordCandidateDto> = emptyList(),
     @SerialName("duplicate_password") val duplicatePassword: Boolean? = null,
+    val mine: Boolean = false,
 )
 
 @Serializable

@@ -78,6 +78,7 @@ class PasswordCandidate(BaseModel):
     down_votes: int
     score: int
     my_vote: int | None = None
+    mine: bool = False
 
 
 class AccessPointDetail(BaseModel):
@@ -89,6 +90,7 @@ class AccessPointDetail(BaseModel):
     longitude: float
     passwords: list[PasswordCandidate]
     duplicate_password: bool | None = None
+    mine: bool = False
 
 
 class AccessPointSummary(BaseModel):
