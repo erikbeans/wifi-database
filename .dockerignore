@@ -1,0 +1,12 @@
+.git
+.github
+android
+docs
+!docs/PRIVACY.md
+!docs/TERMS.md
+server/.venv
+server/.env
+server/.pytest_cache
+server/tests
+**/__pycache__
+**/*.pyc

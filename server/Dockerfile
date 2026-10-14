@@ -5,9 +5,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-COPY pyproject.toml alembic.ini ./
-COPY app ./app
-COPY alembic ./alembic
+COPY server/pyproject.toml server/alembic.ini ./
+COPY server/app ./app
+COPY server/alembic ./alembic
+COPY docs/PRIVACY.md docs/TERMS.md ./
 
 RUN pip install --no-cache-dir . \
     && useradd --create-home --shell /usr/sbin/nologin appuser

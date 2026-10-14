@@ -46,6 +46,16 @@ def assetlinks():
     return link_pages.assetlinks_response()
 
 
+@app.get("/privacy", include_in_schema=False)
+def privacy():
+    return link_pages.privacy_page()
+
+
+@app.get("/terms", include_in_schema=False)
+def terms():
+    return link_pages.terms_page()
+
+
 class CrashReport(BaseModel):
     stack_trace: str = Field(min_length=1, max_length=8000)
     device_model: str = Field(default="", max_length=128)

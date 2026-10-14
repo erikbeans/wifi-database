@@ -17,7 +17,9 @@ services:
       retries: 12
 
   api:
-    build: .
+    build:
+      context: ..
+      dockerfile: server/Dockerfile
     restart: unless-stopped
     environment:
       WIFI_DATABASE_URL: postgresql+psycopg2://${WIFI_DB_USER}:${WIFI_DB_PASSWORD}@db:5432/${WIFI_DB_NAME}

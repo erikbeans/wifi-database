@@ -18,7 +18,9 @@ services:
       retries: 12
 
   api:
-    build: .
+    build:
+      context: ..
+      dockerfile: server/Dockerfile
     environment:
       WIFI_DATABASE_URL: postgresql+psycopg2://wifi:wifi@db:5432/wifi
       WIFI_JWT_SECRET: ${WIFI_JWT_SECRET:-dev-only-insecure-secret}

@@ -12,9 +12,9 @@ new Play Store listings.
    that will own the app listing permanently; ownership can't be
    transferred later without support.
 2. **Release keystore** — a private key you control (see below).
-3. **Privacy policy URL** — the policy in `docs/PRIVACY.md` must be
-   hosted at a public URL, e.g. `https://wifidb.clickbeans.com/privacy`.
-   Play requires this because the app collects location and account data.
+3. **Privacy policy URL** — the API serves both policy pages automatically:
+   `https://wifidb.clickbeans.com/privacy` and `https://wifidb.clickbeans.com/terms`.
+    Play requires this because the app collects location and account data.
 
 ## 1. Create an upload keystore
 

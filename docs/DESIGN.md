@@ -560,9 +560,9 @@ sponsors page in the system browser — the app never touches payment data.
    flow — yes: embedded mini-map with a draggable pin starting at the GPS
    fix, a "use this location" confirm, and a 500 m drag-radius guard.
    Ships with Phase 3 (osmdroid work). Server change: none.
-5. ToS/privacy policy text for the consent step — a privacy statement is
-   drafted in `docs/PRIVACY.md`; ToS text and in-app surfacing of both
-   remain open (Phase 4).
+5. **[Resolved 2026-10-14]** ToS/privacy text — drafted in `docs/PRIVACY.md`
+   and `docs/TERMS.md`, served by the API at `/privacy` and `/terms`.
+   In-app surfacing of both lands with Phase 4.
 6. Vote mechanics: collapse threshold for weak passwords (proposed score −3),
    whether scores decay over time, and whether voting should require having
    opened the password (anti-brigading) — post-MVP tuning.

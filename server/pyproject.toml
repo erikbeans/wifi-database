@@ -20,6 +20,7 @@ dependencies = [
     "pyjwt>=2.8",
     "cryptography>=42.0",
     "slowapi>=0.1.9",
+    "markdown>=3.5",
     "psycopg2-binary>=2.9",
 ]
 
