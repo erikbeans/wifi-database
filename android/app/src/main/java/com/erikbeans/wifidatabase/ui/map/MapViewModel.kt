@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.erikbeans.wifidatabase.data.api.ApiResult
+import com.erikbeans.wifidatabase.data.location.LocationProvider
 import com.erikbeans.wifidatabase.domain.model.NearbyAccessPoint
 import com.erikbeans.wifidatabase.domain.repository.AccessPointRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -24,12 +25,18 @@ data class MapUiState(
 @HiltViewModel
 class MapViewModel @Inject constructor(
     private val accessPointRepository: AccessPointRepository,
+    private val locationProvider: LocationProvider,
 ) : ViewModel() {
 
     var state by mutableStateOf(MapUiState())
         private set
 
     private var fetchJob: Job? = null
+
+    suspend fun lastKnownLocation(): Pair<Double, Double>? {
+        val location = locationProvider.awaitFix(timeoutMillis = 4000)
+        return location?.let { it.latitude to it.longitude }
+    }
 
     fun onViewportChanged(minLat: Double, minLon: Double, maxLat: Double, maxLon: Double) {
         fetchJob?.cancel()

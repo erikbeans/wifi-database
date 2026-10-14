@@ -121,6 +121,10 @@ fun NearbyScreen(navController: NavController, viewModel: NearbyViewModel = hilt
             }
         },
     ) { padding ->
+        val wifiOff = androidx.compose.runtime.remember {
+            val manager = context.getSystemService(android.content.Context.WIFI_SERVICE) as? android.net.wifi.WifiManager
+            manager?.isWifiEnabled != true
+        }
         androidx.compose.material3.pulltorefresh.PullToRefreshBox(
             isRefreshing = viewModel.state.loading,
             onRefresh = viewModel::refresh,
@@ -155,6 +159,14 @@ fun NearbyScreen(navController: NavController, viewModel: NearbyViewModel = hilt
                     modifier = Modifier.padding(horizontal = 16.dp),
                 )
                 Spacer(Modifier.height(8.dp))
+            }
+            if (wifiOff) {
+                Text(
+                    "WiFi is turned off — enable it to see and share nearby networks.",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                )
             }
             if (viewModel.state.unverified) {
                 UnverifiedBanner(Modifier.padding(horizontal = 16.dp))

@@ -102,6 +102,15 @@ fun MapScreen(navController: NavController, viewModel: MapViewModel = hiltViewMo
         )
         if (viewModel.state.loading) {
             CircularProgressIndicator(Modifier.align(Alignment.TopCenter).padding(12.dp))
+        } else if (viewModel.state.pins.isEmpty()) {
+            Text(
+                "No shared networks in view — pan around, or share the first one from the Nearby tab.",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(12.dp),
+            )
         }
         if (viewModel.state.error != null) {
             Text(
@@ -117,6 +126,10 @@ fun MapScreen(navController: NavController, viewModel: MapViewModel = hiltViewMo
 
     LaunchedEffect(mapView) {
         val view = mapView ?: return@LaunchedEffect
+        val known = viewModel.lastKnownLocation()
+        if (known != null) {
+            view.controller.setCenter(GeoPoint(known.first, known.second))
+        }
         delay(600)
         val bounds = view.boundingBox
         viewModel.onViewportChanged(

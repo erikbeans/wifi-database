@@ -9,9 +9,11 @@ import androidx.lifecycle.viewModelScope
 import com.erikbeans.wifidatabase.AppConfig
 import com.erikbeans.wifidatabase.data.api.ApiResult
 import com.erikbeans.wifidatabase.data.api.EMAIL_UNVERIFIED
+import com.erikbeans.wifidatabase.data.local.DonationPrefs
 import com.erikbeans.wifidatabase.data.local.SubmissionMemory
 import com.erikbeans.wifidatabase.data.wifi.SuggestionResult
 import com.erikbeans.wifidatabase.data.wifi.WifiSuggester
+import com.erikbeans.wifidatabase.domain.DonationPolicy
 import com.erikbeans.wifidatabase.domain.model.AccessPointDetail
 import com.erikbeans.wifidatabase.domain.model.PasswordCandidate
 import com.erikbeans.wifidatabase.domain.repository.AccessPointRepository
@@ -30,6 +32,7 @@ data class DetailUiState(
     val showUnlikely: Boolean = false,
     val copiedPasswordId: String? = null,
     val deleted: Boolean = false,
+    val showDonationCard: Boolean = false,
 )
 
 sealed interface DetailEvent {
@@ -44,6 +47,7 @@ class DetailViewModel @Inject constructor(
     private val accessPointRepository: AccessPointRepository,
     private val submissionMemory: SubmissionMemory,
     private val wifiSuggester: WifiSuggester,
+    private val donationPrefs: DonationPrefs,
 ) : ViewModel() {
 
     private val apId: String = savedStateHandle["apId"] ?: ""
@@ -148,6 +152,25 @@ class DetailViewModel @Inject constructor(
                 is ApiResult.Failure -> _events.send(DetailEvent.Toast(result.message))
             }
         }
+    }
+
+    fun confirmWorked(passwordId: String) {
+        vote(passwordId, 1)
+        donationPrefs.onWorkedConfirm()
+        if (DonationPolicy.shouldAsk(
+                neverAsk = donationPrefs.neverAsk,
+                askCount = donationPrefs.askCount,
+                successfulConfirms = donationPrefs.successfulConfirms,
+                confirmsSinceLastAsk = donationPrefs.confirmsSinceLastAsk,
+            )
+        ) {
+            state = state.copy(showDonationCard = true)
+        }
+    }
+
+    fun dismissDonationCard(never: Boolean) {
+        donationPrefs.recordAsk(never)
+        state = state.copy(showDonationCard = false)
     }
 
     fun retractVote(passwordId: String) {
