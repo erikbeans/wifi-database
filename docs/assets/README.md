@@ -23,3 +23,9 @@ its PNG (for example, with CairoSVG).
 
 The SVG uses DejaVu Sans; render with that font installed to preserve the
 layout. Regenerate the PNG with CairoSVG after editing the source.
+
+# Map markers
+
+`android/app/src/main/res/drawable/ic_wifi_map_pin.xml` reuses the icon's
+Wi-Fi pin with a navy outline for contrast on map tiles. Both the network
+map and draggable share-location picker use this 40×46 dp vector.

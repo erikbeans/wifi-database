@@ -30,6 +30,7 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import kotlinx.coroutines.delay
+import com.erikbeans.wifidatabase.R
 import org.osmdroid.config.Configuration
 import org.osmdroid.events.MapListener
 import org.osmdroid.events.ScrollEvent
@@ -63,6 +64,7 @@ fun MapScreen(navController: NavController, viewModel: MapViewModel = hiltViewMo
         markers.forEach { view.overlays.remove(it) }
         val newMarkers = viewModel.state.pins.map { ap ->
             Marker(view).apply {
+                icon = ContextCompat.getDrawable(view.context, R.drawable.ic_wifi_map_pin)
                 id = ap.id
                 position = GeoPoint(ap.latitude, ap.longitude)
                 setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
