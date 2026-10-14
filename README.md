@@ -74,6 +74,8 @@ cd android
 
 The debug APK lands in `android/app/build/outputs/apk/debug/`.
 Unit tests: `./gradlew testDebugUnitTest`.
+To publish to Google Play, build a signed App Bundle instead — see
+[docs/RELEASE.md](docs/RELEASE.md).
 
 ## CI (GitHub Actions)
 
