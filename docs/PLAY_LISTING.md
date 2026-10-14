@@ -14,7 +14,7 @@ ID verification clears. Keep in sync with `docs/PRIVACY.md` and
 | Free or paid | Free |
 | Category | Tools |
 | Tags | wifi, internet, network, password finder, utilities |
-| Contact email | erikbeans@gmail.com |
+| Contact email | support@clickbeans.com |
 | Privacy policy URL | https://wifidb.clickbeans.com/privacy |
 | Website (optional) | https://wifidb.clickbeans.com |
 

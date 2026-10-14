@@ -28,7 +28,7 @@ def test_privacy_page_serves_the_privacy_statement() -> None:
     assert response.status_code == 200
     assert "text/html" in response.headers["content-type"]
     assert "Privacy Statement" in response.text
-    assert "erikbeans@gmail.com" in response.text
+    assert "support@clickbeans.com" in response.text
 
 
 def test_terms_page_serves_the_terms_of_service() -> None:

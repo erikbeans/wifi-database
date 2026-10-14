@@ -52,6 +52,6 @@ without any link to you (anonymized), because other people may rely on them.
 
 ## Contact
 
-Questions or removal requests: erikbeans@gmail.com.
+Questions or removal requests: [support@clickbeans.com](mailto:support@clickbeans.com).
 
 See also the [Terms of Service](https://wifidb.clickbeans.com/terms).

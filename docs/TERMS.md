@@ -82,4 +82,4 @@ contributions are handled as described in the Privacy Statement.
 
 ## 11. Contact
 
-Questions: erikbeans@gmail.com.
+Questions: [support@clickbeans.com](mailto:support@clickbeans.com).
