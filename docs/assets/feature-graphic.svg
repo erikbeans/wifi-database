@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="500" viewBox="0 0 1024 500">
+<defs>
+ <radialGradient id="glow"><stop stop-color="#15506A"/><stop offset="1" stop-color="#0F172A"/></radialGradient>
+</defs>
+<rect width="1024" height="500" fill="#0F172A"/>
+<circle cx="792" cy="246" r="335" fill="url(#glow)"/>
+<g fill="none" stroke="#38BDF8" stroke-opacity=".12" stroke-width="1.5">
+ <circle cx="790" cy="245" r="139"/>
+ <circle cx="790" cy="245" r="192"/>
+ <circle cx="790" cy="245" r="247"/>
+ <path d="M570 128 L654 128 L711 71 M908 330 L964 330 L1004 370 M596 361 L646 311"/>
+</g>
+<g fill="#38BDF8">
+ <circle cx="654" cy="128" r="4"/><circle cx="964" cy="330" r="4"/><circle cx="596" cy="361" r="4"/>
+</g>
+<g font-family="DejaVu Sans, sans-serif">
+ <rect x="64" y="98" width="34" height="4" rx="2" fill="#38BDF8"/>
+ <text x="64" y="156" fill="#F8FAFC" font-weight="700" font-size="43" letter-spacing="-1.5">WiFi Database</text>
+ <text x="64" y="226" fill="#F8FAFC" font-weight="700" font-size="38" letter-spacing="-1">Find WiFi.</text>
+ <text x="64" y="275" fill="#38BDF8" font-weight="700" font-size="38" letter-spacing="-1">Share the connection.</text>
+ <text x="64" y="326" fill="#CBD5E1" font-size="19">Community-shared passwords, nearby.</text>
+ <text x="64" y="394" fill="#94A3B8" font-size="15" letter-spacing="1">NEARBY NETWORKS · MAPS · COMMUNITY VOTES</text>
+</g>
+<g transform="translate(563 13) scale(4.2)"><ns0:path xmlns:ns0="http://www.w3.org/2000/svg" fill="#38BDF8" d="M54,24 C39.64,24 28,35.64 28,50 C28,66 54,84 54,84 C54,84 80,66 80,50 C80,35.64 68.36,24 54,24 Z" /><ns0:path xmlns:ns0="http://www.w3.org/2000/svg" fill="#0F172A" d="M37,44 Q54,29 71,44 L67,48 Q54,37 41,48 Z M44,51 Q54,42 64,51 L60,55 Q54,50 48,55 Z M54,56 A3.5,3.5 0,1 0,54,63 A3.5,3.5 0,1 0,54,56 Z" /></g>
+</svg>

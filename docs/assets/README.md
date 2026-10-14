@@ -15,3 +15,11 @@ Keep the SVG paths and Android vector paths in sync when changing the mark.
 The store SVG crops the Android viewport to 18,18–90,90 to match the
 nominal 72×72 launcher viewport. Render the SVG at 512×512 to regenerate
 its PNG (for example, with CairoSVG).
+
+# Feature graphic
+
+- `feature-graphic.svg`: editable 1024×500 store banner using the same mark.
+- `feature-graphic.png`: opaque 1024×500 PNG export for Play Console.
+
+The SVG uses DejaVu Sans; render with that font installed to preserve the
+layout. Regenerate the PNG with CairoSVG after editing the source.
