@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     verify_url: str = "https://wifidb.clickbeans.com/verify?token={token}"
     reset_url: str = "https://wifidb.clickbeans.com/password-reset?token={token}"
 
-    android_package: str = "com.erikbeans.wifidatabase"
+    android_package: str = "com.clickbeans.wifidatabase"
     android_sha256_fingerprints: list[str] = []
 
     cors_origins: list[str] = []

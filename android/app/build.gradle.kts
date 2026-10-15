@@ -12,15 +12,15 @@ plugins {
 val keystorePropertiesFile = rootProject.file("keystore.properties")
 
 android {
-    namespace = "com.erikbeans.wifidatabase"
+    namespace = "com.clickbeans.wifidatabase"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.erikbeans.wifidatabase"
+        applicationId = "com.clickbeans.wifidatabase"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.1.1"
     }
 
     compileOptions {

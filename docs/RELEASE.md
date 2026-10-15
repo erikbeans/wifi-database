@@ -5,6 +5,21 @@ Google Play Store. New apps must be uploaded as a signed
 **Android App Bundle (AAB)** — plain APKs are no longer accepted for
 new Play Store listings.
 
+## Current Android identity
+
+Use package name `com.clickbeans.wifidatabase`. Release `v0.1.1`
+(versionCode 2) supersedes `v0.1.0`, which used
+`com.erikbeans.wifidatabase`; do not upload the old bundle.
+The new package installs separately from previous debug installs and requires
+signing in again.
+
+App Links also need the app's signing certificate: add the SHA-256 fingerprint
+from Play Console's **App signing key certificate** to the production
+`WIFI_ANDROID_SHA256_FINGERPRINTS` list, preserving the debug fingerprint.
+Google signs installed Play builds with that certificate, which can differ
+from the upload certificate. Verify the live `/.well-known/assetlinks.json`
+targets `com.clickbeans.wifidatabase` before checking email links.
+
 ## Prerequisites
 
 1. **Google Play Developer account** — sign up at
@@ -133,8 +148,8 @@ GitHub → Settings → Secrets and variables → Actions:
 Then tag a release:
 
 ```sh
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.1.1
+git push origin v0.1.1
 ```
 
 The AAB is attached to a GitHub Release, ready to upload to Play.

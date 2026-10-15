@@ -100,21 +100,33 @@ All phases on-device tested on the owner's Samsung Fold 6 (Android 16).
 - **CI:** Server CI (pytest against PostGIS + compose smoke incl. boot
   migrations; pull retries harden against Docker Hub flakiness), Android CI
   (build + tests + `debug-latest` rolling release), **Android Release**
-  (`v*` tag → signed AAB via GitHub secrets; secrets NOT yet configured).
+  (`v*` tag → signed AAB via GitHub secrets; secrets configured and validated by the v0.1.0 build).
 
 ## Remaining work
 
-1. **Play launch (owner's prerequisites, then tag `v0.1.0`):** Play
-   developer account, `upload.jks` keystore, the four GitHub secrets
-   (`KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`),
-   listing assets — full checklist in `docs/RELEASE.md`. Bump versionCode
-   per upload.
+0. **Android identity:** the owner selected `com.clickbeans.wifidatabase`.
+   Application ID, Kotlin namespace, source packages, and server App Links
+   configuration now use this identity. Release `v0.1.1` (versionCode 2)
+   replaces `v0.1.0`, whose AAB uses `com.erikbeans.wifidatabase`.
+   Install as a separate app from the old package and sign in again.
+   Before testing a Play-installed build, add Google Play's **app signing**
+   SHA-256 certificate fingerprint to the production App Links settings.
+
+1. **Play launch:** the owner has created the developer account and upload
+   keystore on the Mac at
+   `/Users/erikbeans/development/configuring/upload.jks`. All four signing
+   secrets are configured; the `v0.1.0` workflow passed. Use the replacement
+   `v0.1.1` bundle with the Clickbeans package for Play testing.
+   App icon and feature graphic are approved and in `docs/assets/`.
+   Screenshots are on the owner's Mac; the owner confirmed the visible
+   Wi-Fi password is safe to publish. See `docs/RELEASE.md` for uploading.
+
 2. **Post-MVP backlog** (DESIGN.md): offline cache, vote weighting/decay,
    admin review UI for flagged content, SSID+proximity dedup, key
    rotation tooling. Vote-mechanics tuning is the only "open question"
    left in DESIGN.md §11, deliberately post-MVP.
-3. Possible UX review pass on a real device; app icon is a basic adaptive
-   vector (placeholder-quality).
+3. Final acceptance on the Play-installed app, including verification/reset
+   links after adding the Play app-signing SHA-256 fingerprint.
 
 ## Notes / gotchas
 
