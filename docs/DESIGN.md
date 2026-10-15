@@ -613,6 +613,10 @@ sponsors page in the system browser — the app never touches payment data.
 - Local dev: `docker compose up` (PostGIS + API + MailHog), `gradle installDebug` for app.
 - CI (GitHub Actions): server runs pytest against a PostGIS service
   container; android runs `assembleDebug` + unit tests.
+- Tagged Android releases build a signed `bundleRelease`, then run the full
+  `testDebugUnitTest` suite before publishing the AAB to GitHub Releases.
+  Compose UI tests use the debug-only test activity manifest, which stays
+  out of the signed release bundle.
 - Alembic manages all schema changes; never hand-edit the DB.
 
 ## 10. Build phases
