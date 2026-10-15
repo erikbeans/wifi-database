@@ -1,0 +1,4 @@
+interface:
+  display_name: "Play Console Release"
+  short_description: "Build, validate, and publish Android app updates"
+  default_prompt: "Use $play-console-release to update this Android app on its existing Google Play testing track."

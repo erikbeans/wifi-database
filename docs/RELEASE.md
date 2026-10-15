@@ -121,6 +121,12 @@ for that lead time.
 
 ## 5. Release checklist (per update)
 
+For the repeatable Codex workflow, use `$play-console-release`. Its versioned
+instructions live in
+[`.agents/skills/play-console-release/SKILL.md`](../.agents/skills/play-console-release/SKILL.md),
+with a WiFi Database profile for signing, tests, and the existing Console track.
+Example: "Use $play-console-release to publish the latest changes to internal testing."
+
 ### v0.1.3 release notes
 
 - Improved Nearby refresh after switching tabs or finding no networks.
