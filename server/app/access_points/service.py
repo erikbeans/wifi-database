@@ -5,7 +5,7 @@ from geoalchemy2 import Geography
 from sqlalchemy import and_, func, select
 from sqlalchemy.orm import Session
 
-from app.access_points import crypto
+from app.access_points import crypto, pruning
 from app.access_points.models import AccessPoint, ApPassword, PasswordVote
 from app.config import get_settings
 
@@ -127,7 +127,7 @@ def recompute_vote_counts(db: Session, password_id: uuid.UUID) -> ApPassword:
     return row
 
 
-def set_vote(db: Session, user_id: uuid.UUID, password_id: uuid.UUID, value: int) -> ApPassword:
+def set_vote(db: Session, user_id: uuid.UUID, password_id: uuid.UUID, value: int) -> pruning.VoteOutcome:
     vote = db.get(PasswordVote, (user_id, password_id))
     now = datetime.now(timezone.utc)
     if vote is None:
@@ -136,15 +136,15 @@ def set_vote(db: Session, user_id: uuid.UUID, password_id: uuid.UUID, value: int
         vote.value = value
         vote.updated_at = now
     db.flush()
-    return recompute_vote_counts(db, password_id)
+    return pruning.prune(db, recompute_vote_counts(db, password_id))
 
 
-def retract_vote(db: Session, user_id: uuid.UUID, password_id: uuid.UUID) -> ApPassword:
+def retract_vote(db: Session, user_id: uuid.UUID, password_id: uuid.UUID) -> pruning.VoteOutcome:
     vote = db.get(PasswordVote, (user_id, password_id))
     if vote is not None:
         db.delete(vote)
         db.flush()
-    return recompute_vote_counts(db, password_id)
+    return pruning.prune(db, recompute_vote_counts(db, password_id))
 
 
 def add_candidate(
@@ -159,8 +159,8 @@ def add_candidate(
         except ValueError:
             continue
         if existing == plaintext:
-            row = set_vote(db, user_id, candidate.id, 1)
-            return row, True
+            set_vote(db, user_id, candidate.id, 1)
+            return candidate, True
     ciphertext, key_version = crypto.seal(plaintext)
     row = ApPassword(
         access_point_id=ap.id,

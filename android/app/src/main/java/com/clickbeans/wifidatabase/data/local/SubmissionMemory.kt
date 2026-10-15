@@ -28,6 +28,10 @@ class SubmissionMemory @Inject constructor(
         prefs.edit().remove("pw_$passwordId").apply()
     }
 
+    fun forgetAccessPoint(apId: String) {
+        prefs.edit().remove("ap_$apId").apply()
+    }
+
     fun clear() {
         prefs.edit().clear().apply()
     }

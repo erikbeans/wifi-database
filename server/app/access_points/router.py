@@ -5,7 +5,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app import security
-from app.access_points import crypto, deletion, service
+from app.access_points import crypto, deletion, pruning, service
 from app.access_points.moderation import file_report
 from app.access_points.models import AccessPoint, ApPassword
 from app.access_points.schemas import (
@@ -125,7 +125,7 @@ def ap_detail(
     user: User = Depends(security.get_verified_user),
     db: Session = Depends(get_db),
 ) -> AccessPointDetail:
-    ap = db.get(AccessPoint, ap_id)
+    ap = pruning.lock_access_point(db, ap_id)
     if ap is None:
         raise HTTPException(status_code=404, detail="access point not found")
     payload = _detail_payload(db, ap, user.id)
@@ -160,8 +160,9 @@ def create_access_point(
         db.flush()
     candidate, duplicate = service.add_candidate(db, ap, payload.password, user.id)
     record(db, user.id, "submission", ap.id)
-    db.commit()
+    db.flush()
     payload_out = _detail_payload(db, ap, user.id, duplicate=duplicate)
+    db.commit()
     status_code = 200 if existing_ap is not None else 201
     return JSONResponse(status_code=status_code, content=payload_out.model_dump(mode="json"))
 
@@ -180,8 +181,9 @@ def add_password_candidate(
         raise HTTPException(status_code=404, detail="access point not found")
     candidate, duplicate = service.add_candidate(db, ap, payload.password, user.id)
     record(db, user.id, "submission", ap.id)
-    db.commit()
+    db.flush()
     payload_out = _detail_payload(db, ap, user.id, duplicate=duplicate)
+    db.commit()
     status_code = 200 if duplicate else 201
     return JSONResponse(status_code=status_code, content=payload_out.model_dump(mode="json"))
 
@@ -219,18 +221,20 @@ def vote(
     user: User = Depends(security.get_verified_user),
     db: Session = Depends(get_db),
 ) -> VoteResponse:
-    password_row = db.get(ApPassword, password_id)
+    password_row = pruning.lock_candidate(db, password_id)
     if password_row is None:
         raise HTTPException(status_code=404, detail="password candidate not found")
     row = service.set_vote(db, user.id, password_id, payload.value)
     record(db, user.id, "vote", password_id)
     db.commit()
     return VoteResponse(
-        password_id=row.id,
+        password_id=row.password_id,
         up_votes=row.up_votes,
         down_votes=row.down_votes,
         score=row.score,
         my_vote=payload.value,
+        password_deleted=row.password_deleted,
+        access_point_deleted=row.access_point_deleted,
     )
 
 
@@ -242,7 +246,7 @@ def retract_vote(
     user: User = Depends(security.get_verified_user),
     db: Session = Depends(get_db),
 ) -> Response:
-    password_row = db.get(ApPassword, password_id)
+    password_row = pruning.lock_candidate(db, password_id)
     if password_row is None:
         raise HTTPException(status_code=404, detail="password candidate not found")
     service.retract_vote(db, user.id, password_id)
@@ -256,12 +260,7 @@ def delete_password_candidate(
     user: User = Depends(security.get_current_user),
     db: Session = Depends(get_db),
 ) -> Response:
-    password_row = db.get(ApPassword, password_id)
-    if password_row is None:
-        raise HTTPException(status_code=404, detail="password candidate not found")
-    # Share the parent lock with submissions and whole-access-point deletion.
-    deletion.lock_access_point(db, password_row.access_point_id)
-    password_row = db.get(ApPassword, password_id, populate_existing=True)
+    password_row = pruning.lock_candidate(db, password_id)
     if password_row is None:
         raise HTTPException(status_code=404, detail="password candidate not found")
     if password_row.submitted_by != user.id:
@@ -281,9 +280,9 @@ def create_report(
     user: User = Depends(security.get_verified_user),
     db: Session = Depends(get_db),
 ) -> ReportResponse:
-    if payload.ap_id is not None and db.get(AccessPoint, payload.ap_id) is None:
+    if payload.ap_id is not None and pruning.lock_access_point(db, payload.ap_id) is None:
         raise HTTPException(status_code=404, detail="access point not found")
-    if payload.password_id is not None and db.get(ApPassword, payload.password_id) is None:
+    if payload.password_id is not None and pruning.lock_candidate(db, payload.password_id) is None:
         raise HTTPException(status_code=404, detail="password candidate not found")
     file_report(db, user.id, payload.ap_id, payload.password_id, payload.reason)
     record(db, user.id, "report", payload.password_id or payload.ap_id)

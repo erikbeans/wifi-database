@@ -45,6 +45,7 @@ sealed interface DetailEvent {
     data class Toast(val message: String) : DetailEvent
     data object AccessPointDeleted : DetailEvent
     data class CandidateDeleted(val passwordId: String) : DetailEvent
+    data class PasswordPruned(val accessPointDeleted: Boolean) : DetailEvent
 }
 
 @HiltViewModel
@@ -107,40 +108,52 @@ class DetailViewModel @Inject constructor(
             val requestStartedAt = SystemClock.elapsedRealtime()
             state = state.copy(loading = state.detail == null, refreshing = true, error = null, unverified = false)
             when (val result = accessPointRepository.detail(apId)) {
-                is ApiResult.Success -> state = state.copy(
-                    loading = false,
-                    refreshing = false,
-                    detail = AccessPointDetail(
-                        id = result.data.id,
-                        ssid = result.data.ssid,
-                        bssid = result.data.bssid,
-                        security = result.data.security,
-                        latitude = result.data.latitude,
-                        longitude = result.data.longitude,
-                        mine = result.data.mine,
-                        deleteUntil = result.data.deleteUntil,
-                        deletionDeadlineElapsedRealtime = DeletionPolicy.deadlineElapsedRealtime(
-                            result.data.canDelete, result.data.serverTime, result.data.deleteUntil, requestStartedAt,
+                is ApiResult.Success -> {
+                    val removed = state.detail?.passwords.orEmpty().map { it.id }.toSet() -
+                        result.data.passwords.map { it.id }.toSet()
+                    removed.forEach { submissionMemory.forgetPassword(it) }
+                    if (removed.isNotEmpty()) _events.send(DetailEvent.PasswordPruned(false))
+                    state = state.copy(
+                        copiedPasswordId = state.copiedPasswordId?.takeUnless { it in removed },
+                        loading = false,
+                        refreshing = false,
+                        detail = AccessPointDetail(
+                            id = result.data.id,
+                            ssid = result.data.ssid,
+                            bssid = result.data.bssid,
+                            security = result.data.security,
+                            latitude = result.data.latitude,
+                            longitude = result.data.longitude,
+                            mine = result.data.mine,
+                            deleteUntil = result.data.deleteUntil,
+                            deletionDeadlineElapsedRealtime = DeletionPolicy.deadlineElapsedRealtime(
+                                result.data.canDelete, result.data.serverTime, result.data.deleteUntil, requestStartedAt,
+                            ),
+                            passwords = result.data.passwords.map {
+                                PasswordCandidate(
+                                    id = it.id,
+                                    password = it.password,
+                                    upVotes = it.upVotes,
+                                    downVotes = it.downVotes,
+                                    score = it.score,
+                                    myVote = it.myVote,
+                                    mine = it.mine,
+                                    deleteUntil = it.deleteUntil,
+                                    deletionDeadlineElapsedRealtime = DeletionPolicy.deadlineElapsedRealtime(
+                                        it.canDelete, result.data.serverTime, it.deleteUntil, requestStartedAt,
+                                    ),
+                                )
+                            },
                         ),
-                        passwords = result.data.passwords.map {
-                            PasswordCandidate(
-                                id = it.id,
-                                password = it.password,
-                                upVotes = it.upVotes,
-                                downVotes = it.downVotes,
-                                score = it.score,
-                                myVote = it.myVote,
-                                mine = it.mine,
-                                deleteUntil = it.deleteUntil,
-                                deletionDeadlineElapsedRealtime = DeletionPolicy.deadlineElapsedRealtime(
-                                    it.canDelete, result.data.serverTime, it.deleteUntil, requestStartedAt,
-                                ),
-                            )
-                        },
-                    ),
-                    elapsedRealtime = SystemClock.elapsedRealtime(),
-                )
+                        elapsedRealtime = SystemClock.elapsedRealtime(),
+                    )
+                }
                 is ApiResult.Failure -> {
+                    if (result.code == 404) {
+                        clearDeletedAccessPoint()
+                        _events.send(DetailEvent.AccessPointDeleted)
+                        return@launch
+                    }
                     // Retain the list on a failed permissions refresh, but fail closed.
                     val retained = state.detail?.let { detail ->
                         detail.copy(
@@ -200,15 +213,31 @@ class DetailViewModel @Inject constructor(
     fun vote(passwordId: String, value: Int) {
         viewModelScope.launch {
             when (val result = accessPointRepository.vote(passwordId, value)) {
-                is ApiResult.Success -> updateCandidate(result.data.passwordId) {
-                    it.copy(
-                        upVotes = result.data.upVotes,
-                        downVotes = result.data.downVotes,
-                        score = result.data.score,
-                        myVote = result.data.myVote,
-                    )
+                is ApiResult.Success -> {
+                    // An earlier detail request must not restore the removed candidate.
+                    loadJob?.cancel()
+                    state = state.copy(loading = false, refreshing = false)
+                    if (result.data.passwordDeleted) {
+                        submissionMemory.forgetPassword(result.data.passwordId)
+                        updateListAfterDelete(result.data.passwordId)
+                        if (result.data.accessPointDeleted) clearDeletedAccessPoint()
+                        _events.send(DetailEvent.PasswordPruned(result.data.accessPointDeleted))
+                        if (!result.data.accessPointDeleted) load()
+                    } else {
+                        updateCandidate(result.data.passwordId) {
+                            it.copy(
+                                upVotes = result.data.upVotes,
+                                downVotes = result.data.downVotes,
+                                score = result.data.score,
+                                myVote = result.data.myVote,
+                            )
+                        }
+                    }
                 }
-                is ApiResult.Failure -> _events.send(DetailEvent.Toast(result.message))
+                is ApiResult.Failure -> {
+                    _events.send(DetailEvent.Toast(result.message))
+                    if (result.code == 404) load()
+                }
             }
         }
     }
@@ -293,10 +322,18 @@ class DetailViewModel @Inject constructor(
         }
     }
 
+    private fun clearDeletedAccessPoint() {
+        state.detail?.passwords?.forEach { submissionMemory.forgetPassword(it.id) }
+        submissionMemory.forgetAccessPoint(apId)
+        state = state.copy(loading = false, refreshing = false, detail = null, copiedPasswordId = null,
+            deleted = true, showDonationCard = false)
+    }
+
     private fun updateListAfterDelete(passwordId: String) {
         val detail = state.detail ?: return
         state = state.copy(
             detail = detail.copy(passwords = detail.passwords.filterNot { it.id == passwordId }),
+            copiedPasswordId = state.copiedPasswordId?.takeUnless { it == passwordId },
         )
     }
 

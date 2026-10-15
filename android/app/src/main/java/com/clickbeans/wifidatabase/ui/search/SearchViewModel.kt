@@ -34,6 +34,14 @@ class SearchViewModel @Inject constructor(
 
     private var searchJob: Job? = null
 
+    fun refresh() {
+        searchJob?.cancel()
+        searchJob = viewModelScope.launch {
+            if (state.nearMe) performNearMe()
+            else if (state.query.isNotBlank()) performSearch(state.query)
+        }
+    }
+
     fun updateQuery(value: String) {
         state = state.copy(query = value, nearMe = false)
         searchJob?.cancel()

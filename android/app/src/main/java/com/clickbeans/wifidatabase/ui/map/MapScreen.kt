@@ -29,6 +29,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.clickbeans.wifidatabase.ui.RefreshAfterDetail
 import kotlinx.coroutines.delay
 import com.clickbeans.wifidatabase.R
 import org.osmdroid.config.Configuration
@@ -50,6 +51,8 @@ fun MapScreen(navController: NavController, viewModel: MapViewModel = hiltViewMo
     var mapView by remember { mutableStateOf<MapView?>(null) }
     var markers by remember { mutableStateOf(listOf<Marker>()) }
     var myLocation by remember { mutableStateOf<MyLocationNewOverlay?>(null) }
+
+    RefreshAfterDetail { viewModel.refresh() }
 
     DisposableEffect(Unit) {
         onDispose {

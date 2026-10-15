@@ -112,6 +112,7 @@ dependencies {
     implementation(libs.androidx.security.crypto)
     implementation(libs.material.components)
 
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
     testImplementation(libs.junit)
     testImplementation(libs.okhttp.mockwebserver)
     testImplementation(libs.robolectric)

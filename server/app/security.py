@@ -150,7 +150,12 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
         user_id = uuid.UUID(str(payload.get("sub", "")))
     except ValueError:
         raise HTTPException(status_code=401, detail=INVALID_TOKEN)
-    user = db.get(User, user_id)
+    # Acquire the voter lock before any access-point lock. Account deletion
+    # takes an exclusive lock first, so no new votes can escape its snapshot.
+    deleting_account = request.method == "DELETE" and request.url.path == "/api/v1/auth/me"
+    user = db.scalar(select(User).where(User.id == user_id).with_for_update(
+        read=not deleting_account, key_share=not deleting_account,
+    ))
     if user is None:
         raise HTTPException(status_code=401, detail=INVALID_TOKEN)
     request.state.user_id = user.id

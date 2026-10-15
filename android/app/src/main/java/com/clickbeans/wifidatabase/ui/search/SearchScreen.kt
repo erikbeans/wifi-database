@@ -29,11 +29,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.clickbeans.wifidatabase.ui.RefreshAfterDetail
 import com.clickbeans.wifidatabase.domain.model.NearbyAccessPoint
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(navController: NavController, viewModel: SearchViewModel = hiltViewModel()) {
+    RefreshAfterDetail { viewModel.refresh() }
+
     Scaffold(
         topBar = { TopAppBar(title = { Text("Search") }) },
     ) { padding ->

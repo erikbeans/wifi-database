@@ -49,6 +49,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.navigation.NavController
+import com.clickbeans.wifidatabase.ui.RefreshAfterDetail
 import com.clickbeans.wifidatabase.domain.model.NearbyRow
 import com.clickbeans.wifidatabase.ui.shareRoute
 import java.time.Instant
@@ -81,6 +82,8 @@ internal fun NearbyScreen(
         hasPermission = grantedNow
         if (grantedNow) onRefresh()
     }
+
+    RefreshAfterDetail { if (hasPermission) onRefresh() }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()

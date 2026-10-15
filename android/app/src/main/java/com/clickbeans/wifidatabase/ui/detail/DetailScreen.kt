@@ -1,5 +1,6 @@
 package com.clickbeans.wifidatabase.ui.detail
 
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -58,6 +59,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavController
 import com.clickbeans.wifidatabase.domain.model.PasswordCandidate
+import com.clickbeans.wifidatabase.ui.REFRESH_AFTER_DETAIL
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 
@@ -95,12 +97,30 @@ fun DetailScreen(navController: NavController, viewModel: DetailViewModel = hilt
         }
     }
 
+    LaunchedEffect(viewModel.state.detail?.passwords) {
+        val remaining = viewModel.state.detail?.passwords.orEmpty().map { it.id }.toSet()
+        if (reportTarget?.id !in remaining) reportTarget = null
+        if (didItWorkTarget !in remaining) didItWorkTarget = null
+        if (confirmDeleteCandidate !in remaining) confirmDeleteCandidate = null
+    }
+
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
                 is DetailEvent.Toast -> snackbar.showSnackbar(event.message)
-                DetailEvent.AccessPointDeleted -> navController.popBackStack()
-                is DetailEvent.CandidateDeleted -> snackbar.showSnackbar("Password deleted")
+                DetailEvent.AccessPointDeleted -> {
+                    navController.previousBackStackEntry?.savedStateHandle?.set(REFRESH_AFTER_DETAIL, true)
+                    navController.popBackStack()
+                }
+                is DetailEvent.CandidateDeleted -> {
+                    navController.previousBackStackEntry?.savedStateHandle?.set(REFRESH_AFTER_DETAIL, true)
+                    snackbar.showSnackbar("Password deleted")
+                }
+                is DetailEvent.PasswordPruned -> {
+                    navController.previousBackStackEntry?.savedStateHandle?.set(REFRESH_AFTER_DETAIL, true)
+                    Toast.makeText(context, "Password removed after community downvotes.", Toast.LENGTH_LONG).show()
+                    if (event.accessPointDeleted) navController.popBackStack()
+                }
             }
         }
     }

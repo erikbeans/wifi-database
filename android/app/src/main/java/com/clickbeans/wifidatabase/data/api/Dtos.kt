@@ -109,6 +109,8 @@ data class VoteResponseDto(
     @SerialName("down_votes") val downVotes: Int,
     val score: Int,
     @SerialName("my_vote") val myVote: Int? = null,
+    @SerialName("password_deleted") val passwordDeleted: Boolean = false,
+    @SerialName("access_point_deleted") val accessPointDeleted: Boolean = false,
 )
 
 @Serializable

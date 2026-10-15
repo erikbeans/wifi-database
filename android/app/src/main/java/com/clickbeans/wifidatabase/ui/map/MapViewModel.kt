@@ -32,6 +32,12 @@ class MapViewModel @Inject constructor(
         private set
 
     private var fetchJob: Job? = null
+    private var viewport: List<Double>? = null
+
+    fun refresh() {
+        dismissSelection()
+        viewport?.let { onViewportChanged(it[0], it[1], it[2], it[3]) }
+    }
 
     suspend fun lastKnownLocation(): Pair<Double, Double>? {
         val location = locationProvider.awaitFix(timeoutMillis = 4000)
@@ -39,6 +45,7 @@ class MapViewModel @Inject constructor(
     }
 
     fun onViewportChanged(minLat: Double, minLon: Double, maxLat: Double, maxLon: Double) {
+        viewport = listOf(minLat, minLon, maxLat, maxLon)
         fetchJob?.cancel()
         fetchJob = viewModelScope.launch {
             delay(300)

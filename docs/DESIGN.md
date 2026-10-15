@@ -193,6 +193,15 @@ Candidates, ranking, and dedup:
 - If a submission is byte-identical to an existing candidate for that AP
   (server decrypts that AP's handful of candidates to compare), no duplicate
   is stored — it counts as an automatic upvote on the existing candidate.
+- Permanent cleanup: whenever votes change, a password candidate scoring
+  **−10 or lower** is deleted in the same transaction, including its encrypted
+  password, votes, and candidate reports. This includes vote switching,
+  retraction, duplicate-submission upvotes, and votes removed during account
+  deletion. All candidates qualify, including flagged/anonymized entries;
+  contributor ownership and deletion deadlines do not restrict this policy.
+  The parent access point is deleted only when no candidates remain (including
+  flagged candidates). AP-level reports then cascade; audit records retain
+  their normal 90-day retention. Scores above −10 remain eligible for ranking.
 - Ranking: `score` = upvotes − downvotes; candidates sort by score desc, then
   recency. The app offers the top candidate first and collapses candidates
   scoring below −3 behind a "show unlikely passwords" toggle. Candidates
@@ -248,7 +257,7 @@ distances in meters.
 | GET | `/access-points/{id}` | Full detail — **the only endpoint that returns passwords** (ranked candidate list). |
 | POST | `/access-points` | Create an access point (or match it by BSSID) and add the password as its first candidate. |
 | POST | `/access-points/{ap_id}/passwords` | Add another password candidate to an existing access point. |
-| POST | `/passwords/{id}/vote` | Set or change my vote, `{value: 1 or -1}`. Upsert; one vote per user per password. |
+| POST | `/passwords/{id}/vote` | Set or change my vote, `{value: 1 or -1}`. Upsert; one vote per user per password. Returns final counts and deletion flags; scores ≤ −10 trigger permanent cleanup. |
 | DELETE | `/passwords/{id}/vote` | Retract my vote. |
 | DELETE | `/passwords/{id}` | Delete my own password candidate strictly before its creation time + 15 minutes; expired requests return `403`. |
 | DELETE | `/access-points/{id}` | Delete my own access point within its first 15 minutes, only when every remaining candidate is mine and within its own window; candidates cascade. |
@@ -353,6 +362,29 @@ password deadlines, or null when foreign/anonymized candidates block deletion.
 `can_delete` reflects eligibility at `server_time`. No schema migration is
 required. Deploy the server before the Android update; older clients remain
 subject to the server's checks.
+
+**Vote cleanup response:** `POST /passwords/{id}/vote` keeps its existing
+`password_id`, `up_votes`, `down_votes`, `score`, and `my_vote` fields and adds
+`password_deleted` and `access_point_deleted` (both default false). The vote
+that triggers cleanup returns `200` with final counts captured before deletion.
+Later requests to deleted candidates/networks return `404`. Retraction retains
+its `204` response; clients reload detail to observe removal.
+
+Mutations lock the parent access-point row before reading/modifying candidates,
+including voting, submissions, reports, and manual deletion. Counts are
+recomputed from votes while holding that lock. Authenticated requests acquire
+a shared user key lock first; account deletion acquires an exclusive user lock
+and all associated parent locks in UUID order before removing votes. This
+prevents new votes escaping account cleanup and serializes cleanup against new
+contributions. Submission responses are assembled before releasing the lock.
+
+Alembic revision `0002` reconciles all candidate counts from stored votes,
+deletes candidates scoring ≤ −10, and deletes only networks emptied by this
+cleanup. Existing empty networks remain. The migration locks affected tables
+against concurrent writes; deleted data cannot be recovered by downgrading.
+Deploy the server (running its startup migration) before distributing the
+Android update. Stop old API workers before migration; do not run old workers
+alongside the new cleanup policy. No periodic cleanup job is required.
 
 **Rate limits (defaults, tunable):** 60 req/min per IP; 20 submissions per day
 per user; 200 votes/day per user; 20 reports/day per user; detail fetches
@@ -503,6 +535,14 @@ android/app/src/main/java/.../
    password list, and refresh permissions. The "Did it work?" confirmation is also the only
    place the donation card may ever appear (see "Donations" below).
 
+After a vote reports automatic deletion, detail removes the candidate, clears
+its submission memory, copied-password state, and open candidate dialogs, and
+shows “Password removed after community downvotes.” A deleted network returns
+to the previous screen and refreshes Nearby, Search, or Map results. A `404`
+when reloading detail follows the same navigation/refresh path. Retraction
+reloads detail and clears disappeared candidates. Older clients may show stale
+rows until refreshed; server cleanup applies regardless of app version.
+
 ### Donations
 
 Optional, deliberately subtle support for development costs, via GitHub
@@ -548,6 +588,8 @@ sponsors page in the system browser — the app never touches payment data.
 - Consent checkbox required per submission; contributor identity stored
   internally for accountability and "delete own entry" support — but never
   exposed in API responses.
+- Passwords scoring ≤ −10 are permanently removed; networks emptied by this
+  cleanup are removed too.
 - Votes: one per user per password (primary-key enforced), changeable and
   retractable, rate-capped per day; identical resubmissions fold into upvotes
   so bad actors cannot flood an AP with duplicate candidates.
@@ -587,7 +629,6 @@ sponsors page in the system browser — the app never touches payment data.
 
 - Offline cache (Room) of recently viewed entries.
 - Vote weighting by account reputation/age; score decay over time.
-- Auto-archive access points whose candidates are all deeply negative.
 - Admin review UI for flagged candidates and AP reports (MVP: operator SQL).
 - Auto-join via `WifiNetworkSpecifier` where the OS allows.
 - SSID+proximity dedup for BSSID-less entries.

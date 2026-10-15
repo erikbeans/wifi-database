@@ -6,6 +6,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app import email, security
+from app.access_points import pruning, service
+from app.access_points.models import AccessPoint, ApPassword, PasswordVote, Report
 from app.auth.models import User
 from app.auth.schemas import (
     LoginRequest,
@@ -169,6 +171,25 @@ def password_reset(payload: PasswordResetConfirm, db: Session = Depends(get_db))
 def delete_me(
     user: User = Depends(security.get_current_user), db: Session = Depends(get_db)
 ) -> Response:
+    # Block new requests by this voter while collecting the affected candidates.
+    db.refresh(user, with_for_update=True)
+    affected = db.execute(
+        select(ApPassword.id, ApPassword.access_point_id)
+        .join(PasswordVote, PasswordVote.password_id == ApPassword.id)
+        .where(PasswordVote.user_id == user.id)
+    ).all()
+    # SET NULL on contributions/reports also writes rows protected by parent locks.
+    associated = set(db.scalars(select(AccessPoint.id).where(AccessPoint.submitted_by == user.id)))
+    associated.update(db.scalars(select(ApPassword.access_point_id).where(ApPassword.submitted_by == user.id)))
+    associated.update(db.scalars(select(Report.ap_id).where(Report.reporter_id == user.id, Report.ap_id.is_not(None))))
+    associated.update(db.scalars(select(ApPassword.access_point_id).join(
+        Report, Report.password_id == ApPassword.id).where(Report.reporter_id == user.id)))
+    for ap_id in sorted(associated | {ap_id for _, ap_id in affected}):
+        pruning.lock_access_point(db, ap_id)
     db.delete(user)
+    db.flush()  # Foreign-key cascades remove this account's votes.
+    for password_id, _ in affected:
+        if db.get(ApPassword, password_id, populate_existing=True) is not None:
+            pruning.prune(db, service.recompute_vote_counts(db, password_id))
     db.commit()
     return Response(status_code=204)

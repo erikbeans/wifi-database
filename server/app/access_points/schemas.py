@@ -113,6 +113,8 @@ class AccessPointSummary(BaseModel):
 
 
 class VoteResponse(BaseModel):
+    password_deleted: bool = False
+    access_point_deleted: bool = False
     password_id: uuid.UUID
     up_votes: int
     down_votes: int
