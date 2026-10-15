@@ -523,12 +523,12 @@ android/app/src/main/java/.../
    system approval prompt) is the primary action with "Copy" as fallback;
    after copying, a "Did it work?" prompt drives voting. Row overflow offers
    "Report" with a reason picker. Delete controls for the user's own AP or
-   password candidates remain visible but disabled after expiry, explaining
-   "The 15-minute deletion window has ended." AP restrictions explain that all
-   remaining passwords must be the user's and within their windows. The share
-   screen discloses the window before submission. Server-provided permissions
-   determine deletion availability, never device submission history. Missing
-   metadata disables deletion. Server timestamp differences are anchored to
+   password candidates appear only while deletion is allowed, disappearing
+   when eligibility expires or permissions are unavailable. The detail page
+   omits deletion-rule explanations; the share screen still discloses the
+   window before submission. Server-provided permissions determine deletion
+   availability, never device submission history. Missing metadata hides
+   deletion controls. Server timestamp differences are anchored to
    Android's monotonic clock at request start, conservatively including network
    time; actions and confirmation buttons expire while open and detail refreshes
    on resume. Failed DELETE responses show the server explanation, preserve the

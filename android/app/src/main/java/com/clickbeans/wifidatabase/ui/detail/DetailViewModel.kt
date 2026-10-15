@@ -93,15 +93,6 @@ class DetailViewModel @Inject constructor(
             DeletionPolicy.canDelete(it.mine, it.deletionDeadlineElapsedRealtime, state.elapsedRealtime)
     } == true
 
-    fun candidateDeletionMessage(candidate: PasswordCandidate): String =
-        if (state.refreshing) "Checking deletion permissions…"
-        else if (candidate.deleteUntil != null) DeletionPolicy.WINDOW_ENDED else DeletionPolicy.UNAVAILABLE
-
-    fun accessPointDeletionMessage(): String =
-        if (state.refreshing) "Checking deletion permissions…"
-        else if (state.detail?.deleteUntil != null) DeletionPolicy.WINDOW_ENDED
-        else DeletionPolicy.ACCESS_POINT_RESTRICTION
-
     fun load() {
         loadJob?.cancel()
         loadJob = viewModelScope.launch {

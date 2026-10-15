@@ -135,9 +135,8 @@ fun DetailScreen(navController: NavController, viewModel: DetailViewModel = hilt
                     }
                 },
                 actions = {
-                    if (viewModel.isMyAccessPoint()) {
+                    if (viewModel.canDeleteAccessPoint()) {
                         IconButton(
-                            enabled = viewModel.canDeleteAccessPoint(),
                             onClick = { confirmDeleteAp = true },
                         ) {
                             Icon(Icons.Outlined.Delete, contentDescription = "Delete access point")
@@ -177,13 +176,6 @@ fun DetailScreen(navController: NavController, viewModel: DetailViewModel = hilt
                 }
                 else -> {
                     val detail = viewModel.state.detail ?: return@Column
-                    if (detail.mine && !viewModel.canDeleteAccessPoint() && !viewModel.state.deleting) {
-                        Text(
-                            viewModel.accessPointDeletionMessage(),
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(vertical = 8.dp),
-                        )
-                    }
                     Text(
                         listOfNotNull(
                             detail.security,
@@ -197,9 +189,7 @@ fun DetailScreen(navController: NavController, viewModel: DetailViewModel = hilt
                         items(viewModel.ranked()) { candidate ->
                             CandidateCard(
                                 candidate = candidate,
-                                isMine = viewModel.isMine(candidate),
                                 canDelete = viewModel.canDelete(candidate),
-                                deletionMessage = viewModel.candidateDeletionMessage(candidate),
                                 onAddToPhone = { viewModel.addToPhone(candidate) },
                                 onCopy = {
                                     clipboard.setText(AnnotatedString(candidate.password))
@@ -229,9 +219,7 @@ fun DetailScreen(navController: NavController, viewModel: DetailViewModel = hilt
                                 items(unlikely) { candidate ->
                                     CandidateCard(
                                         candidate = candidate,
-                                        isMine = viewModel.isMine(candidate),
                                         canDelete = viewModel.canDelete(candidate),
-                                        deletionMessage = viewModel.candidateDeletionMessage(candidate),
                                         onAddToPhone = { viewModel.addToPhone(candidate) },
                                         onCopy = {
                                             clipboard.setText(AnnotatedString(candidate.password))
@@ -335,7 +323,7 @@ fun DetailScreen(navController: NavController, viewModel: DetailViewModel = hilt
             text = {
                 Text(if (viewModel.canDeleteAccessPoint()) {
                     "All its password candidates will be removed. This can't be undone."
-                } else viewModel.accessPointDeletionMessage())
+                } else "This access point is no longer available to delete.")
             },
             confirmButton = {
                 TextButton(enabled = viewModel.canDeleteAccessPoint(), onClick = {
@@ -357,7 +345,7 @@ fun DetailScreen(navController: NavController, viewModel: DetailViewModel = hilt
             title = { Text("Delete this password?") },
             text = {
                 Text(if (canDelete) "Your contributed password will be removed. This can't be undone."
-                else candidate?.let(viewModel::candidateDeletionMessage) ?: "This password is unavailable.")
+                else "This password is no longer available to delete.")
             },
             confirmButton = {
                 TextButton(enabled = canDelete, onClick = {
@@ -407,9 +395,7 @@ private fun DonationCard(
 @Composable
 private fun CandidateCard(
     candidate: PasswordCandidate,
-    isMine: Boolean,
     canDelete: Boolean,
-    deletionMessage: String,
     onAddToPhone: () -> Unit,
     onCopy: () -> Unit,
     onVote: (Int) -> Unit,
@@ -490,15 +476,9 @@ private fun CandidateCard(
                             onReport()
                         },
                     )
-                    if (isMine) {
+                    if (canDelete) {
                         DropdownMenuItem(
-                            enabled = canDelete,
-                            text = {
-                                Column {
-                                    Text("Delete my password")
-                                    if (!canDelete) Text(deletionMessage, style = MaterialTheme.typography.bodySmall)
-                                }
-                            },
+                            text = { Text("Delete my password") },
                             leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = null) },
                             onClick = {
                                 menuOpen = false
