@@ -149,11 +149,18 @@ fun ShareScreen(
             if (pinLat != null && pinLon != null) {
                 Text(
                     "Location: %.5f, %.5f".format(pinLat, pinLon) +
-                        " (approximate router position — drag the pin on the map to correct it)",
+                        " (approximate router position)",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 if (viewModel.state.mapExpanded) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "Swipe to move the map. To move the pin, touch and hold it, then drag it " +
+                            "to the router's location. Tap Use this location when you're done.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                     Spacer(Modifier.height(8.dp))
                     LocationPickerMap(
                         latitude = pinLat,

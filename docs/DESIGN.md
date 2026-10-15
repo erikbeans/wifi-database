@@ -494,8 +494,9 @@ android/app/src/main/java/.../
 3. **Share:** pick a scanned network from a dropdown (SSID/BSSID/security
    prefilled; manual entry is not offered) → password field (show/hide) →
    current GPS coordinates shown on an embedded mini-map with a draggable
-   pin: the contributor can correct the router's position by dragging
-   (limited to 500 m from the GPS fix) and confirms with "use this
+   pin: when expanded, instructions above the map explain swiping to pan,
+   touching and holding the pin before dragging it to the router's position
+   (limited to 500 m from the GPS fix), and confirming with "Use this
    location" → required consent checkbox → submit → optimistic update of
    nearby list.
    If the AP already exists (BSSID match) the UI says "added as an
