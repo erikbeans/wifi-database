@@ -7,7 +7,7 @@ from app.access_points import pruning
 from app.database import SessionLocal
 
 logger = logging.getLogger(__name__)
-CLEANUP_INTERVAL_SECONDS = 60
+CLEANUP_INTERVAL_SECONDS = 60 * 60
 BATCH_SIZE = 100
 
 

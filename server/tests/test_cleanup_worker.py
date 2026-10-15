@@ -73,7 +73,7 @@ def test_loop_runs_immediately_and_retries_after_failure(monkeypatch):
     with pytest.raises(asyncio.CancelledError):
         asyncio.run(cleanup.cleanup_loop())
     assert len(runs) == 2
-    assert intervals == [60, 60]
+    assert intervals == [3600, 3600]
 
 
 @pytest.mark.parametrize('enabled', [True, False])

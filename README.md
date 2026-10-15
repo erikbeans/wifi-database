@@ -38,7 +38,7 @@ python3.12 -m venv .venv && .venv/bin/pip install -e ".[dev]"
 ```
 
 Schema changes go through Alembic (`alembic/`); never hand-edit the database.
-The API checks for expired password cleanup timers at startup and every minute.
+The API checks for expired password cleanup timers at startup and every hour.
 A score of −1 or lower starts a 24-hour grace period; recovery to 0 or higher
 cancels it. Persistent timers survive restarts. Stop older API workers before
 upgrading to the delayed-cleanup schema (Alembic `0003`).

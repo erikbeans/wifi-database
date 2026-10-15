@@ -211,9 +211,9 @@ Candidates, ranking, and dedup:
   parent access point is deleted only when no candidates remain (including
   flagged candidates). AP-level reports then cascade; audit records retain
   their normal 90-day retention. An API lifespan task checks due candidates
-  immediately at startup and every 60 seconds, so idle entries are removed
+  immediately at startup and every hour, so idle entries are removed
   without another vote. Deletion occurs on the first successful cleanup pass
-  after 24 hours (normally within another minute); downtime or lock contention
+  after 24 hours (normally within another hour); downtime or lock contention
   can delay cleanup. Timers survive restarts and overdue work is caught up.
 - Ranking: `score` = upvotes − downvotes; candidates sort by score desc, then
   recency. The app offers the top candidate first and collapses candidates
