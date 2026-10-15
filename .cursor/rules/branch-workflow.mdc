@@ -1,0 +1,8 @@
+---
+description: Develop each new plan or feature on a dedicated branch and merge after validation
+alwaysApply: true
+---
+
+Follow the branch workflow in the repository root `AGENTS.md`: start each
+new plan or feature on a fresh `codex/` branch, implement and validate it,
+then merge it into `main`. Preserve unrelated uncommitted work.

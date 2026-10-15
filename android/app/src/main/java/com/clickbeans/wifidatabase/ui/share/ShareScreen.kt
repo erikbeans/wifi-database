@@ -184,7 +184,9 @@ fun ShareScreen(
                     onCheckedChange = { viewModel.toggleConsent() },
                 )
                 Text(
-                    "I confirm I'm allowed to share this network's password.\nShared passwords become public.",
+                    "I confirm I'm allowed to share this network's password.\nShared passwords become public. " +
+                        "You can delete a password you add only within the first 15 minutes. " +
+                        "After that, you can report a problem but cannot delete it.",
                     style = MaterialTheme.typography.bodySmall,
                 )
             }

@@ -29,6 +29,12 @@ account. You can delete your account at any time in Settings.
 - You grant every other user of the Service permission to view and use the
   passwords and network details you submit. Contributions are shared
   publicly by design.
+- You can delete a password you contributed only within the first 15 minutes
+  after it is added to the database. This also applies to existing contributions.
+  Resubmitting the same password does not restart that window. After the window
+  ends, you can report a problem or contact support to request review. Deleting
+  an entire access point is allowed only within its first 15 minutes and only
+  while every remaining password is yours and within its own deletion window.
 - Don't submit content that is unlawful, abusive, or intended to harm. The
   community can report contributions; contributions that gather multiple
   reports are automatically hidden, and we may remove anything at our

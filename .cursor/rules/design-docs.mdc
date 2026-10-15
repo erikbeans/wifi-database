@@ -1,0 +1,8 @@
+---
+description: Keep the design documentation consistent with project changes
+alwaysApply: true
+---
+
+Follow the design documentation guidance in the repository root `AGENTS.md`:
+check `docs/DESIGN.md` for every change and update affected sections whenever
+the documented design changes.

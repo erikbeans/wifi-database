@@ -1,5 +1,6 @@
 package com.clickbeans.wifidatabase.ui.detail
 
+import android.os.SystemClock
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -14,11 +15,13 @@ import com.clickbeans.wifidatabase.data.local.SubmissionMemory
 import com.clickbeans.wifidatabase.data.wifi.SuggestionResult
 import com.clickbeans.wifidatabase.data.wifi.WifiSuggester
 import com.clickbeans.wifidatabase.domain.DonationPolicy
+import com.clickbeans.wifidatabase.domain.DeletionPolicy
 import com.clickbeans.wifidatabase.domain.model.AccessPointDetail
 import com.clickbeans.wifidatabase.domain.model.PasswordCandidate
 import com.clickbeans.wifidatabase.domain.repository.AccessPointRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
@@ -33,6 +36,9 @@ data class DetailUiState(
     val copiedPasswordId: String? = null,
     val deleted: Boolean = false,
     val showDonationCard: Boolean = false,
+    val elapsedRealtime: Long = SystemClock.elapsedRealtime(),
+    val deleting: Boolean = false,
+    val refreshing: Boolean = false,
 )
 
 sealed interface DetailEvent {
@@ -57,24 +63,53 @@ class DetailViewModel @Inject constructor(
 
     private val _events = Channel<DetailEvent>(Channel.BUFFERED)
     val events: Flow<DetailEvent> = _events.receiveAsFlow()
+    private var loadJob: Job? = null
+    private var hasResumed = false
 
     init {
         load()
     }
 
-    fun isMine(candidate: PasswordCandidate): Boolean =
-        candidate.mine || submissionMemory.isMyPassword(candidate.id)
+    fun isMine(candidate: PasswordCandidate): Boolean = candidate.mine
 
-    fun isMyAccessPoint(): Boolean =
-        state.detail?.mine == true ||
-            state.detail?.let { submissionMemory.isMyAccessPoint(it.id) } == true
+    fun isMyAccessPoint(): Boolean = state.detail?.mine == true
+
+    fun onResume() {
+        // init already loads on first entry; subsequent resumes need fresh permissions.
+        if (hasResumed) load()
+        hasResumed = true
+    }
+
+    fun tick() {
+        state = state.copy(elapsedRealtime = SystemClock.elapsedRealtime())
+    }
+
+    fun canDelete(candidate: PasswordCandidate): Boolean = !state.loading && !state.refreshing && !state.deleting &&
+        DeletionPolicy.canDelete(candidate.mine, candidate.deletionDeadlineElapsedRealtime, state.elapsedRealtime)
+
+    fun canDeleteAccessPoint(): Boolean = state.detail?.let {
+        !state.loading && !state.refreshing && !state.deleting &&
+            DeletionPolicy.canDelete(it.mine, it.deletionDeadlineElapsedRealtime, state.elapsedRealtime)
+    } == true
+
+    fun candidateDeletionMessage(candidate: PasswordCandidate): String =
+        if (state.refreshing) "Checking deletion permissions…"
+        else if (candidate.deleteUntil != null) DeletionPolicy.WINDOW_ENDED else DeletionPolicy.UNAVAILABLE
+
+    fun accessPointDeletionMessage(): String =
+        if (state.refreshing) "Checking deletion permissions…"
+        else if (state.detail?.deleteUntil != null) DeletionPolicy.WINDOW_ENDED
+        else DeletionPolicy.ACCESS_POINT_RESTRICTION
 
     fun load() {
-        viewModelScope.launch {
-            state = state.copy(loading = true, error = null, unverified = false)
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
+            val requestStartedAt = SystemClock.elapsedRealtime()
+            state = state.copy(loading = state.detail == null, refreshing = true, error = null, unverified = false)
             when (val result = accessPointRepository.detail(apId)) {
                 is ApiResult.Success -> state = state.copy(
                     loading = false,
+                    refreshing = false,
                     detail = AccessPointDetail(
                         id = result.data.id,
                         ssid = result.data.ssid,
@@ -83,6 +118,10 @@ class DetailViewModel @Inject constructor(
                         latitude = result.data.latitude,
                         longitude = result.data.longitude,
                         mine = result.data.mine,
+                        deleteUntil = result.data.deleteUntil,
+                        deletionDeadlineElapsedRealtime = DeletionPolicy.deadlineElapsedRealtime(
+                            result.data.canDelete, result.data.serverTime, result.data.deleteUntil, requestStartedAt,
+                        ),
                         passwords = result.data.passwords.map {
                             PasswordCandidate(
                                 id = it.id,
@@ -92,15 +131,35 @@ class DetailViewModel @Inject constructor(
                                 score = it.score,
                                 myVote = it.myVote,
                                 mine = it.mine,
+                                deleteUntil = it.deleteUntil,
+                                deletionDeadlineElapsedRealtime = DeletionPolicy.deadlineElapsedRealtime(
+                                    it.canDelete, result.data.serverTime, it.deleteUntil, requestStartedAt,
+                                ),
                             )
                         },
                     ),
+                    elapsedRealtime = SystemClock.elapsedRealtime(),
                 )
-                is ApiResult.Failure -> state = state.copy(
-                    loading = false,
-                    error = result.message,
-                    unverified = result.code == 403 && result.message == EMAIL_UNVERIFIED,
-                )
+                is ApiResult.Failure -> {
+                    // Retain the list on a failed permissions refresh, but fail closed.
+                    val retained = state.detail?.let { detail ->
+                        detail.copy(
+                            deleteUntil = null,
+                            deletionDeadlineElapsedRealtime = null,
+                            passwords = detail.passwords.map {
+                                it.copy(deleteUntil = null, deletionDeadlineElapsedRealtime = null)
+                            },
+                        )
+                    }
+                    state = state.copy(
+                        loading = false,
+                        refreshing = false,
+                        detail = retained,
+                        error = if (retained == null) result.message else null,
+                        unverified = result.code == 403 && result.message == EMAIL_UNVERIFIED,
+                    )
+                    if (retained != null) _events.send(DetailEvent.Toast(result.message))
+                }
             }
         }
     }
@@ -197,24 +256,40 @@ class DetailViewModel @Inject constructor(
     }
 
     fun deleteCandidate(passwordId: String) {
+        tick()
+        val candidate = state.detail?.passwords?.find { it.id == passwordId } ?: return
+        if (!canDelete(candidate)) return
+        state = state.copy(deleting = true)
         viewModelScope.launch {
             when (val result = accessPointRepository.deleteCandidate(passwordId)) {
                 is ApiResult.Success -> {
                     submissionMemory.forgetPassword(passwordId)
                     updateListAfterDelete(passwordId)
                     _events.send(DetailEvent.CandidateDeleted(passwordId))
+                    load()
                 }
-                is ApiResult.Failure -> _events.send(DetailEvent.Toast(result.message))
+                is ApiResult.Failure -> {
+                    _events.send(DetailEvent.Toast(result.message))
+                    load()
+                }
             }
+            state = state.copy(deleting = false)
         }
     }
 
     fun deleteAccessPoint() {
+        tick()
+        if (!canDeleteAccessPoint()) return
+        state = state.copy(deleting = true)
         viewModelScope.launch {
             when (val result = accessPointRepository.deleteAccessPoint(apId)) {
                 is ApiResult.Success -> _events.send(DetailEvent.AccessPointDeleted)
-                is ApiResult.Failure -> _events.send(DetailEvent.Toast(result.message))
+                is ApiResult.Failure -> {
+                    _events.send(DetailEvent.Toast(result.message))
+                    load()
+                }
             }
+            state = state.copy(deleting = false)
         }
     }
 

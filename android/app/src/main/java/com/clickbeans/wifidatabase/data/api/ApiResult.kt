@@ -1,8 +1,12 @@
 package com.clickbeans.wifidatabase.data.api
 
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import retrofit2.HttpException
 import java.io.IOException
+import kotlinx.coroutines.CancellationException
 
 sealed interface ApiResult<out T> {
     data class Success<T>(val data: T) : ApiResult<T>
@@ -17,7 +21,9 @@ private val json = Json { ignoreUnknownKeys = true }
 internal fun HttpException.detailMessage(): String? {
     return try {
         val body = response()?.errorBody()?.string() ?: return null
-        json.decodeFromString(MessageResponse.serializer(), body).message
+        val fields = json.parseToJsonElement(body).jsonObject
+        fields["message"]?.jsonPrimitive?.contentOrNull
+            ?: fields["detail"]?.jsonPrimitive?.contentOrNull
     } catch (_: Exception) {
         null
     }
@@ -30,6 +36,8 @@ inline fun <T> apiCall(block: () -> T): ApiResult<T> = try {
     ApiResult.Failure(e.detailMessage() ?: genericMessage(e.code()), e.code())
 } catch (e: IOException) {
     ApiResult.Failure("Network error — check your connection")
+} catch (e: CancellationException) {
+    throw e
 } catch (e: Exception) {
     ApiResult.Failure("Something went wrong")
 }

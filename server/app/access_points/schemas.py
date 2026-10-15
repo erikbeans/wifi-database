@@ -79,6 +79,8 @@ class PasswordCandidate(BaseModel):
     score: int
     my_vote: int | None = None
     mine: bool = False
+    can_delete: bool = False
+    delete_until: datetime | None = None
 
 
 class AccessPointDetail(BaseModel):
@@ -91,6 +93,9 @@ class AccessPointDetail(BaseModel):
     passwords: list[PasswordCandidate]
     duplicate_password: bool | None = None
     mine: bool = False
+    server_time: datetime
+    can_delete: bool = False
+    delete_until: datetime | None = None
 
 
 class AccessPointSummary(BaseModel):

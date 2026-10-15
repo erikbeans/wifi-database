@@ -250,8 +250,8 @@ distances in meters.
 | POST | `/access-points/{ap_id}/passwords` | Add another password candidate to an existing access point. |
 | POST | `/passwords/{id}/vote` | Set or change my vote, `{value: 1 or -1}`. Upsert; one vote per user per password. |
 | DELETE | `/passwords/{id}/vote` | Retract my vote. |
-| DELETE | `/passwords/{id}` | Delete my own password candidate. |
-| DELETE | `/access-points/{id}` | Delete my own access point (owner only; candidates cascade). |
+| DELETE | `/passwords/{id}` | Delete my own password candidate strictly before its creation time + 15 minutes; expired requests return `403`. |
+| DELETE | `/access-points/{id}` | Delete my own access point within its first 15 minutes, only when every remaining candidate is mine and within its own window; candidates cascade. |
 | POST | `/reports` | Report a wrong or abusive entry: `{ap_id or password_id, reason}`. 3+ reports on a candidate auto-flags it out of the ranked list; AP-level reports queue for review. |
 
 **List/search responses never include passwords or contributor IDs.** Summary shape:
@@ -310,18 +310,49 @@ then recency; `my_vote` is the caller's current vote):
   "latitude": 47.6062,
   "longitude": -122.3321,
   "mine": true,
+  "server_time": "2026-10-07T18:05:00Z",
+  "can_delete": false,
+  "delete_until": null,
   "passwords": [
     { "id": "p-1", "password": "espresso42", "up_votes": 12,
-      "down_votes": 1, "score": 11, "my_vote": 1, "mine": true },
+      "down_votes": 1, "score": 11, "my_vote": 1, "mine": true,
+      "can_delete": true, "delete_until": "2026-10-07T18:15:00Z" },
     { "id": "p-2", "password": "nero2023", "up_votes": 2,
-      "down_votes": 5, "score": -3, "my_vote": null, "mine": false }
+      "down_votes": 5, "score": -3, "my_vote": null, "mine": false,
+      "can_delete": false, "delete_until": null }
   ]
 }
 ```
 
 The detail response carries a per-viewer `mine` flag on the AP and on each
-candidate — true when the signed-in user submitted it — so the app can offer
-delete buttons without ever exposing contributor identity to other viewers.
+candidate — true when the signed-in user submitted it — without exposing
+contributor identity to other viewers. Ownership alone does not permit deletion.
+
+**Contributor deletion window:** existing and new password candidates may be
+deleted by their contributor only while database wall-clock time is strictly
+earlier than `created_at + 15 minutes`. At the deadline and thereafter the API
+returns `403` with "The 15-minute deletion window has ended." Duplicate
+submissions, voting, reveals, copying, and saving to a phone never reset the
+original creation timestamp. Account deletion still anonymizes contributions;
+reporting and operator removal remain available after expiry.
+
+The same rule applies to the access point's creation time. Whole-access-point
+deletion additionally requires every remaining candidate (including flagged
+candidates) to belong to the requester and remain within its own window.
+Foreign-owned or anonymized candidates block deletion; an empty access point
+can be deleted within its original window. Submissions and both contributor
+deletion paths lock the parent access-point row, and deletion checks use the
+database wall clock after lock acquisition to prevent cascade races or stale
+transaction timestamps from extending the window.
+
+Detail and both submission responses include `server_time`, and per-viewer
+`can_delete` and nullable `delete_until` on the AP and each visible candidate.
+Non-owners receive false/null. Owners receive their password's deadline even
+after expiry. An AP's deadline is the earliest of its own and all remaining
+password deadlines, or null when foreign/anonymized candidates block deletion.
+`can_delete` reflects eligibility at `server_time`. No schema migration is
+required. Deploy the server before the Android update; older clients remain
+subject to the server's checks.
 
 **Rate limits (defaults, tunable):** 60 req/min per IP; 20 submissions per day
 per user; 200 votes/day per user; 20 reports/day per user; detail fetches
@@ -459,8 +490,17 @@ android/app/src/main/java/.../
    with the user's own vote reflected; **"Add to phone"** (Wi-Fi suggestion,
    system approval prompt) is the primary action with "Copy" as fallback;
    after copying, a "Did it work?" prompt drives voting. Row overflow offers
-   "Report" with a reason picker. Delete buttons for the user's own AP or
-   password candidates. The "Did it work?" confirmation is also the only
+   "Report" with a reason picker. Delete controls for the user's own AP or
+   password candidates remain visible but disabled after expiry, explaining
+   "The 15-minute deletion window has ended." AP restrictions explain that all
+   remaining passwords must be the user's and within their windows. The share
+   screen discloses the window before submission. Server-provided permissions
+   determine deletion availability, never device submission history. Missing
+   metadata disables deletion. Server timestamp differences are anchored to
+   Android's monotonic clock at request start, conservatively including network
+   time; actions and confirmation buttons expire while open and detail refreshes
+   on resume. Failed DELETE responses show the server explanation, preserve the
+   password list, and refresh permissions. The "Did it work?" confirmation is also the only
    place the donation card may ever appear (see "Donations" below).
 
 ### Donations

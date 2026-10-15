@@ -61,10 +61,16 @@ class AccessPointRepository @Inject constructor(
         apiCall { api.retractVote(passwordId) }
 
     suspend fun deleteCandidate(passwordId: String): ApiResult<Unit> =
-        apiCall { api.deleteCandidate(passwordId) }
+        apiCall {
+            val response = api.deleteCandidate(passwordId)
+            if (!response.isSuccessful) throw retrofit2.HttpException(response)
+        }
 
     suspend fun deleteAccessPoint(apId: String): ApiResult<Unit> =
-        apiCall { api.deleteAccessPoint(apId) }
+        apiCall {
+            val response = api.deleteAccessPoint(apId)
+            if (!response.isSuccessful) throw retrofit2.HttpException(response)
+        }
 
     suspend fun report(apId: String?, passwordId: String?, reason: String): ApiResult<Unit> =
         apiCall { api.report(ReportRequest(apId = apId, passwordId = passwordId, reason = reason)) }

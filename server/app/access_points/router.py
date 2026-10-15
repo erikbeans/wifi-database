@@ -5,7 +5,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app import security
-from app.access_points import crypto, service
+from app.access_points import crypto, deletion, service
 from app.access_points.moderation import file_report
 from app.access_points.models import AccessPoint, ApPassword
 from app.access_points.schemas import (
@@ -35,6 +35,8 @@ reports_router = APIRouter()
 def _detail_payload(
     db: Session, ap: AccessPoint, viewer_id: uuid.UUID, duplicate: bool | None = None
 ) -> AccessPointDetail:
+    now = deletion.server_time(db)
+    ap_deadline = deletion.access_point_deadline(db, ap, viewer_id)
     rows = service.ranked_candidates(db, ap.id, viewer_id)
     candidates = [
         PasswordCandidate(
@@ -45,6 +47,9 @@ def _detail_payload(
             score=password_row.score,
             my_vote=my_vote,
             mine=password_row.submitted_by == viewer_id,
+            can_delete=(deadline := deletion.password_deadline(password_row, viewer_id)) is not None
+            and now < deadline,
+            delete_until=deadline,
         )
         for password_row, my_vote in rows
     ]
@@ -58,6 +63,9 @@ def _detail_payload(
         passwords=candidates,
         duplicate_password=duplicate,
         mine=ap.submitted_by == viewer_id,
+        server_time=now,
+        can_delete=ap_deadline is not None and now < ap_deadline,
+        delete_until=ap_deadline,
     )
 
 
@@ -135,6 +143,8 @@ def create_access_point(
     db: Session = Depends(get_db),
 ) -> Response:
     existing_ap = service.find_by_bssid(db, payload.bssid) if payload.bssid else None
+    if existing_ap is not None:
+        existing_ap = deletion.lock_access_point(db, existing_ap.id)
     ap = existing_ap
     if ap is None:
         ap = AccessPoint(
@@ -165,7 +175,7 @@ def add_password_candidate(
     user: User = Depends(security.get_verified_user),
     db: Session = Depends(get_db),
 ) -> Response:
-    ap = db.get(AccessPoint, ap_id)
+    ap = deletion.lock_access_point(db, ap_id)
     if ap is None:
         raise HTTPException(status_code=404, detail="access point not found")
     candidate, duplicate = service.add_candidate(db, ap, payload.password, user.id)
@@ -182,11 +192,19 @@ def delete_access_point(
     user: User = Depends(security.get_current_user),
     db: Session = Depends(get_db),
 ) -> Response:
-    ap = db.get(AccessPoint, ap_id)
+    ap = deletion.lock_access_point(db, ap_id)
     if ap is None:
         raise HTTPException(status_code=404, detail="access point not found")
     if ap.submitted_by != user.id:
         raise HTTPException(status_code=403, detail="not the owner of this access point")
+    deadline = deletion.access_point_deadline(db, ap, user.id)
+    now = deletion.server_time(db)
+    if now >= ap.created_at + deletion.DELETION_WINDOW:
+        raise HTTPException(status_code=403, detail=deletion.WINDOW_ENDED)
+    if deadline is None:
+        raise HTTPException(status_code=403, detail=deletion.OTHER_CONTRIBUTIONS)
+    if now >= deadline:
+        raise HTTPException(status_code=403, detail=deletion.WINDOW_ENDED)
     db.delete(ap)
     db.commit()
     return Response(status_code=204)
@@ -241,8 +259,15 @@ def delete_password_candidate(
     password_row = db.get(ApPassword, password_id)
     if password_row is None:
         raise HTTPException(status_code=404, detail="password candidate not found")
+    # Share the parent lock with submissions and whole-access-point deletion.
+    deletion.lock_access_point(db, password_row.access_point_id)
+    password_row = db.get(ApPassword, password_id, populate_existing=True)
+    if password_row is None:
+        raise HTTPException(status_code=404, detail="password candidate not found")
     if password_row.submitted_by != user.id:
         raise HTTPException(status_code=403, detail="not the owner of this password candidate")
+    if deletion.server_time(db) >= password_row.created_at + deletion.DELETION_WINDOW:
+        raise HTTPException(status_code=403, detail=deletion.WINDOW_ENDED)
     db.delete(password_row)
     db.commit()
     return Response(status_code=204)

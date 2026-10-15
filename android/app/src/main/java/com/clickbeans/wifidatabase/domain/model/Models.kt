@@ -26,6 +26,8 @@ data class PasswordCandidate(
     val score: Int,
     val myVote: Int?,
     val mine: Boolean,
+    val deleteUntil: String? = null,
+    val deletionDeadlineElapsedRealtime: Long? = null,
 )
 
 data class AccessPointDetail(
@@ -37,6 +39,8 @@ data class AccessPointDetail(
     val longitude: Double,
     val passwords: List<PasswordCandidate>,
     val mine: Boolean,
+    val deleteUntil: String? = null,
+    val deletionDeadlineElapsedRealtime: Long? = null,
 )
 
 data class NearbyRow(

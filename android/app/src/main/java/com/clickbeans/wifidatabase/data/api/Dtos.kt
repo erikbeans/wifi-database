@@ -67,6 +67,8 @@ data class PasswordCandidateDto(
     val score: Int = 0,
     @SerialName("my_vote") val myVote: Int? = null,
     val mine: Boolean = false,
+    @SerialName("can_delete") val canDelete: Boolean = false,
+    @SerialName("delete_until") val deleteUntil: String? = null,
 )
 
 @Serializable
@@ -95,6 +97,9 @@ data class AccessPointDetailDto(
     val passwords: List<PasswordCandidateDto> = emptyList(),
     @SerialName("duplicate_password") val duplicatePassword: Boolean? = null,
     val mine: Boolean = false,
+    @SerialName("server_time") val serverTime: String? = null,
+    @SerialName("can_delete") val canDelete: Boolean = false,
+    @SerialName("delete_until") val deleteUntil: String? = null,
 )
 
 @Serializable
