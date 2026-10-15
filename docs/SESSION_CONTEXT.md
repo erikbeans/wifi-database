@@ -93,7 +93,11 @@ All phases on-device tested on the owner's Samsung Fold 6 (Android 16).
   (App Links, autoVerify, assetlinks.json served by API from
   `WIFI_ANDROID_SHA256_FINGERPRINTS`) + fallback HTML pages + legacy
   `wifidatabase://` scheme. All debug builds sign with the committed
-  `android/app/debug.keystore` (that fingerprint is what assetlists lists).
+  `android/app/debug.keystore`. Production assetlinks now lists both the
+  debug certificate and the owner-provided Google Play app-signing SHA-256:
+  `DF:3B:85:0A:DD:FB:C5:2A:5A:30:DD:49:87:E0:D8:F7:86:8E:06:1A:30:F0:EF:6C:68:64:EF:93:F4:30:C3:CF`.
+  Both certificates were verified live for `com.clickbeans.wifidatabase`;
+  on-device Play-install link verification is still pending.
 - **Crash reporter:** uncaught exceptions POST to `/api/v1/crash-reports`
   (rate-limited 10/h/IP; see `sudo docker logs wifi-database-prod-api-1 | grep wifi.crashes`).
 - **Donation caps** (`domain/DonationPolicy.kt`, unit-tested): max 2 asks
@@ -112,8 +116,8 @@ All phases on-device tested on the owner's Samsung Fold 6 (Android 16).
    configuration now use this identity. Release `v0.1.2` (versionCode 3, target API 36)
    replaces `v0.1.1` (target API 35) and `v0.1.0`, whose AAB uses `com.erikbeans.wifidatabase`.
    Install as a separate app from the old package and sign in again.
-   Before testing a Play-installed build, add Google Play's **app signing**
-   SHA-256 certificate fingerprint to the production App Links settings.
+   The Play app-signing SHA-256 is configured in production alongside the
+   debug fingerprint; both were verified in the live App Links response.
 
 1. **Play launch:** the owner has created the developer account and upload
    keystore on the Mac at
@@ -129,7 +133,7 @@ All phases on-device tested on the owner's Samsung Fold 6 (Android 16).
    rotation tooling. Vote-mechanics tuning is the only "open question"
    left in DESIGN.md §11, deliberately post-MVP.
 3. Final acceptance on the Play-installed app, including verification/reset
-   links after adding the Play app-signing SHA-256 fingerprint.
+   links with the configured Play app-signing SHA-256 fingerprint.
 
 ## Notes / gotchas
 
