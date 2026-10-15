@@ -115,6 +115,9 @@ All phases on-device tested on the owner's Samsung Fold 6 (Android 16).
    Application ID, Kotlin namespace, source packages, and server App Links
    configuration now use this identity. Release `v0.1.2` (versionCode 3, target API 36)
    replaces `v0.1.1` (target API 35) and `v0.1.0`, whose AAB uses `com.erikbeans.wifidatabase`.
+   The next update is `v0.1.3` (versionCode 4, target API 36), including
+   Nearby refresh fixes, 15-minute contributor deletion, and list refresh
+   after low-score password cleanup. Its release notes are in `docs/RELEASE.md`.
    Install as a separate app from the old package and sign in again.
    The Play app-signing SHA-256 is configured in production alongside the
    debug fingerprint; both were verified in the live App Links response.

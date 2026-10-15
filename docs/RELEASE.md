@@ -7,8 +7,8 @@ new Play Store listings.
 
 ## Current Android identity
 
-Use package name `com.clickbeans.wifidatabase`. Release `v0.1.2`
-(versionCode 3, target API 36) supersedes `v0.1.1` (target API 35)
+Use package name `com.clickbeans.wifidatabase`. Release `v0.1.3`
+(versionCode 4, target API 36) updates `v0.1.2` (versionCode 3) and supersedes `v0.1.1` (target API 35)
 and `v0.1.0`, which used
 `com.erikbeans.wifidatabase`; do not upload the old bundle.
 The new package installs separately from previous debug installs and requires
@@ -121,6 +121,20 @@ for that lead time.
 
 ## 5. Release checklist (per update)
 
+### v0.1.3 release notes
+
+- Improved Nearby refresh after switching tabs or finding no networks.
+- Contributor deletion is available for 15 minutes after sharing.
+- Improved list refresh after voting removes a low-rated password or its network.
+
+This update targets the existing **Internal testing** track. The release uses
+the existing upload key and package, so testers can update their Play install.
+The corresponding API changes must be deployed for deletion windows and
+low-score password cleanup to take effect; see `docs/DESIGN.md` for those
+existing contracts. The version bump itself does not change the design.
+
+### Build and upload
+
 Bump `versionCode` and `versionName` in `android/app/build.gradle.kts`,
 then:
 
@@ -149,8 +163,8 @@ GitHub → Settings → Secrets and variables → Actions:
 Then tag a release:
 
 ```sh
-git tag v0.1.2
-git push origin v0.1.2
+git tag v0.1.3
+git push origin v0.1.3
 ```
 
 The AAB is attached to a GitHub Release, ready to upload to Play.
