@@ -126,6 +126,11 @@ instructions live in
 [`.agents/skills/play-console-release/SKILL.md`](../.agents/skills/play-console-release/SKILL.md),
 with a WiFi Database profile for signing, tests, and the existing Console track.
 Example: "Use $play-console-release to publish the latest changes to internal testing."
+For preparation only, say "Use $play-console-release to build the next signed
+bundle without uploading" or "save a draft without publishing."
+The skill reuses matching uploaded bundles and drafts, verifies the exact CI
+source, and records the actual Play status. A submission awaiting review is
+reported as pending, rather than available to testers.
 
 ### v0.1.3 release notes
 
@@ -153,7 +158,10 @@ cd android
 ./gradlew bundleRelease
 ```
 
-Upload the new AAB to Play Console → Production → Create new release.
+Upload the new AAB to Play Console → Internal testing → Create new release
+for the ordinary WiFi Database update. Use another track, including Production,
+only when requested. If the bundle is already uploaded, select it from Play's
+library instead of uploading it again.
 `versionCode` must increase with every upload; `versionName` is the
 user-facing string (e.g. `0.2.0`).
 

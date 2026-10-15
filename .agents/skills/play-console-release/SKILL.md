@@ -22,6 +22,10 @@ does not authorize a new release, promotion, or server deployment by itself.
   Do not promote to production as part of an ordinary testing update.
 - Compare the requested source against the last release. Reuse an existing
   validated artifact when it already represents the requested update.
+  If that version is already uploaded to Play, select the existing bundle
+  instead of uploading it again. If already available on the requested track,
+  report that state without creating another release. Resume matching drafts;
+  do not replace an unrelated draft or pending release.
 - For a new artifact, choose a version code greater than every previously
   uploaded code, including drafts and other tracks. Derive the version name
   from project conventions or the user's request; never hardcode the last
@@ -56,6 +60,8 @@ does not authorize a new release, promotion, or server deployment by itself.
    folder. Check archive integrity, record a SHA-256 digest, and retain its
    source/run provenance. Verify signing locally when tooling is available;
    Play Console must also accept the upload identity and signature.
+   Compare the uploaded bundle's package, version code, and version name with
+   the intended source before proceeding. Do not infer identity from its filename.
 
 If release changes require matching server behavior, verify the deployed
 revision or contract without exposing production secrets. Report any missing
@@ -77,9 +83,20 @@ dependency and resolve it only within the user's authorized deployment scope.
 - If the user requested the update, complete publication to the resolved track
   within that authorization. If the user requested only preparation, save a
   draft or return the bundle. Follow applicable tool confirmation requirements.
+- Inspect Publishing overview when submission or managed publishing applies.
+  Verify which changes the final action includes; do not submit or publish
+  unrelated pending changes. Preserve the existing managed publishing setting
+  and requested rollout percentage. If the UI cannot isolate this release,
+  explain the conflict and request direction before the combined action.
 - Verify the resulting release page explicitly shows the intended version
   and availability/status. A successful click, saved draft, or accepted upload
   alone is not proof of rollout. If already published, do not publish again.
+  Report review or processing as pending, with the Console link and next action;
+  do not keep rebuilding or uploading while awaiting Google's decision.
+  Follow [Google's release guide](https://support.google.com/googleplay/android-developer/answer/9859348?hl=en)
+  and [publishing status guidance](https://support.google.com/googleplay/android-developer/answer/9859654?hl=en)
+  if the current Console flow differs. Internal testing is generally immediate
+  and is excluded from managed publishing, but review exceptions can apply.
 
 ## Finish
 

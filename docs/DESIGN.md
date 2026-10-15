@@ -617,6 +617,11 @@ sponsors page in the system browser — the app never touches payment data.
   `testDebugUnitTest` suite before publishing the AAB to GitHub Releases.
   Compose UI tests use the debug-only test activity manifest, which stays
   out of the signed release bundle.
+- The repository's `play-console-release` skill guides signed-build validation
+  and publication to the existing Internal testing track by default. It verifies
+  the artifact's source and Play bundle identity, resumes matching drafts or
+  uploaded bundles, and records confirmed availability or pending review.
+  Production promotion requires a request for that track.
 - Alembic manages all schema changes; never hand-edit the DB.
 
 ## 10. Build phases

@@ -33,6 +33,22 @@ Play Console on every release; this profile does not pin a current version.
   debug unit suite while building the signed release bundle.
 - Successful workflows attach `app-release.aab` to the matching GitHub Release
   and also upload a `release-aab` Actions artifact.
+- Resolve the release tag to its exact commit and select CI by that SHA and
+  workflow, rather than taking the latest run or the rolling `debug-latest`
+  release. Useful commands, with variables set from the verified release:
+
+  ```sh
+  gh run list --repo erikbeans/wifi-database --workflow android-release.yml --commit "$release_sha" --json databaseId,headSha,status,conclusion,url
+  gh run view "$release_run_id" --repo erikbeans/wifi-database --json headSha,status,conclusion,jobs,url
+  gh release download "$release_tag" --repo erikbeans/wifi-database --pattern app-release.aab --dir "$release_dir"
+  unzip -t "$release_dir/app-release.aab"
+  shasum -a 256 "$release_dir/app-release.aab"
+  jarsigner -verify "$release_dir/app-release.aab"
+  ```
+
+  Require the selected run to have succeeded and match the tagged source.
+  Inspect signature output: an unsigned archive is unacceptable even if the
+  command exits successfully. Check package and version in Play's bundle details.
 - Local build output, when built locally:
   `android/app/build/outputs/bundle/release/app-release.aab`.
 - Use a local folder such as `~/Downloads/Wifi-Database-<version>/` for the
