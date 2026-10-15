@@ -1,3 +1,16 @@
 <resources>
     <string name="app_name">WiFi Database</string>
+    <string name="welcome_title">Welcome to WiFi Database</string>
+    <string name="welcome_description">Find and share WiFi passwords, wherever you go. Help others connect by sharing what you know and voting on what works.</string>
+    <string name="welcome_things_to_try">Things to try</string>
+    <string name="welcome_share_title">Share a password</string>
+    <string name="welcome_share_description">Add WiFi passwords you know and have permission to share.</string>
+    <string name="welcome_travel_title">Find WiFi while traveling</string>
+    <string name="welcome_travel_description">Look for shared passwords near your destination.</string>
+    <string name="welcome_vote_title">Cast your vote</string>
+    <string name="welcome_vote_description">Vote up passwords that work and down those that don’t.</string>
+    <string name="welcome_get_started">Get started</string>
+    <string name="welcome_done">Done</string>
+    <string name="welcome_back">Back</string>
+    <string name="welcome_and_tips">Welcome &amp; tips</string>
 </resources>

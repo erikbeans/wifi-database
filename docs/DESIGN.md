@@ -488,6 +488,7 @@ android/app/src/main/java/.../
 ├── di/                      # Hilt modules
 ├── domain/                  # models (AccessPoint, ScanResult ...), repositories
 └── ui/
+    ├── welcome/             # First-use introduction, replayable from Settings
     ├── auth/                # LoginScreen, RegisterScreen
     ├── nearby/              # NearbyScreen (scan results x DB matches)
     ├── search/              # SearchScreen (name search / radius list)
@@ -498,6 +499,26 @@ android/app/src/main/java/.../
 ```
 
 ### Screens and flows
+
+**Welcome & tips:** the first ordinary launch after installation or this
+update shows a readable welcome page before sign-in or the restored app
+destination. It introduces finding and sharing WiFi passwords, with three
+things to try: share known passwords with permission, find shared passwords
+when traveling, and vote up working passwords or down nonworking ones.
+The page uses the app artwork, three informational icon rows, and a persistent
+"Get started" button; text scrolls on small screens and with large font sizes.
+No timeout dismisses it. Only tapping "Get started" saves completion in an
+installation-level SharedPreferences file; completion survives process restarts,
+updates, sign-outs, and account changes. Clearing app data or reinstalling
+resets it. Normal destinations, including restored Map/Detail screens, are
+gated without constructing their content or ViewModels, so Nearby does not
+request location or scan before completion. Bottom navigation stays hidden.
+Verification/password-reset links bypass the introduction and keep their
+tokens; the introduction remains pending for the next ordinary destination.
+Settings → "Welcome & tips" reopens the same page with "Done" and Back
+returning to Settings without changing completion. Settings scrolls to keep
+its controls accessible on smaller displays. This is an Android-only flow
+with no new server API or database changes.
 
 1. **Auth gate:** Login / Register → "check your email" screen; the
    verification deep link lands back in the app and stores tokens

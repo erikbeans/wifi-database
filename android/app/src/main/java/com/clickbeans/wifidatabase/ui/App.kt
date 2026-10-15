@@ -19,7 +19,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -28,7 +28,11 @@ import androidx.core.util.Consumer
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavGraphBuilder
+import androidx.navigation.NamedNavArgument
+import androidx.navigation.NavDeepLink
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -39,6 +43,7 @@ import androidx.navigation.navDeepLink
 import androidx.navigation.compose.rememberNavController
 import com.clickbeans.wifidatabase.data.auth.SessionManager
 import com.clickbeans.wifidatabase.data.auth.TokenManager
+import com.clickbeans.wifidatabase.data.local.WelcomePrefs
 import com.clickbeans.wifidatabase.ui.auth.CheckEmailScreen
 import com.clickbeans.wifidatabase.ui.auth.ForgotPasswordScreen
 import com.clickbeans.wifidatabase.ui.auth.LoginScreen
@@ -51,6 +56,8 @@ import com.clickbeans.wifidatabase.ui.nearby.NearbyScreen
 import com.clickbeans.wifidatabase.ui.search.SearchScreen
 import com.clickbeans.wifidatabase.ui.settings.SettingsScreen
 import com.clickbeans.wifidatabase.ui.share.ShareScreen
+import com.clickbeans.wifidatabase.ui.welcome.WelcomeGate
+import com.clickbeans.wifidatabase.ui.welcome.WelcomeScreen
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 
@@ -65,6 +72,7 @@ object Routes {
     const val SEARCH = "search"
     const val MAP = "map"
     const val SETTINGS = "settings"
+    const val WELCOME = "welcome"
     const val SHARE = "share?ssid={ssid}&bssid={bssid}&security={security}"
     const val DETAIL = "detail/{apId}"
 
@@ -80,9 +88,17 @@ fun shareRoute(ssid: String?, bssid: String?, security: String?): String =
 class AppViewModel @Inject constructor(
     sessionManager: SessionManager,
     tokenManager: TokenManager,
+    private val welcomePrefs: WelcomePrefs,
 ) : ViewModel() {
 
     val loggedIn = sessionManager.loggedIn
+    var welcomeCompleted by mutableStateOf(welcomePrefs.completed)
+        private set
+
+    fun completeWelcome() {
+        welcomePrefs.complete()
+        welcomeCompleted = true
+    }
 
     init {
         tokenManager.loadSessionFromDisk()
@@ -124,7 +140,7 @@ fun App() {
 
     Scaffold(
         bottomBar = {
-            if (currentRoute in Routes.topLevel) {
+            if (appViewModel.welcomeCompleted && currentRoute in Routes.topLevel) {
                 BottomBar(navController, currentRoute)
             }
         },
@@ -132,6 +148,8 @@ fun App() {
         AppNavHost(
             navController = navController,
             startDestination = if (loggedIn) Routes.NEARBY else Routes.LOGIN,
+            welcomeCompleted = appViewModel.welcomeCompleted,
+            onCompleteWelcome = appViewModel::completeWelcome,
             modifier = Modifier.padding(padding),
         )
     }
@@ -176,70 +194,98 @@ private fun NavHostController.navigateToTopLevel(route: String) {
 }
 
 @Composable
-private fun AppNavHost(
+internal fun AppNavHost(
     navController: NavHostController,
     startDestination: String,
+    welcomeCompleted: Boolean,
+    onCompleteWelcome: () -> Unit,
     modifier: Modifier = Modifier,
+    destinationContent: @Composable (NavBackStackEntry) -> Unit = { entry ->
+        AppDestination(navController, entry)
+    },
 ) {
-    NavHost(
-        navController = navController,
-        startDestination = startDestination,
-        modifier = modifier,
-    ) {
-        composable(Routes.LOGIN) { LoginScreen(navController) }
-        composable(Routes.REGISTER) { RegisterScreen(navController) }
-        composable(
-            route = Routes.CHECK_EMAIL,
-            arguments = listOf(navArgument("email") { type = NavType.StringType; defaultValue = "" }),
-        ) { entry ->
-            CheckEmailScreen(
-                navController = navController,
-                email = entry.arguments?.getString("email").orEmpty(),
-            )
+    // Keep the graph stable when completion changes, including restored back stacks.
+    val completed = rememberUpdatedState(welcomeCompleted)
+    val completeWelcome = rememberUpdatedState(onCompleteWelcome)
+    val screen = rememberUpdatedState(destinationContent)
+
+    NavHost(navController, startDestination = startDestination, modifier = modifier) {
+        fun NavGraphBuilder.destination(
+            route: String,
+            arguments: List<NamedNavArgument> = emptyList(),
+            deepLinks: List<NavDeepLink> = emptyList(),
+        ) {
+            composable(route, arguments = arguments, deepLinks = deepLinks) { entry ->
+                // Email links must remain usable before the introduction is completed.
+                val bypassWelcome = route == Routes.VERIFY || route == Routes.RESET_PASSWORD
+                WelcomeGate(
+                    completed = completed.value || bypassWelcome,
+                    onComplete = { completeWelcome.value() },
+                ) {
+                    screen.value(entry)
+                }
+            }
         }
-        composable(Routes.FORGOT_PASSWORD) { ForgotPasswordScreen(navController) }
-        composable(
-            route = Routes.VERIFY,
+
+        destination(Routes.LOGIN)
+        destination(Routes.REGISTER)
+        destination(
+            Routes.CHECK_EMAIL,
+            arguments = listOf(navArgument("email") { type = NavType.StringType; defaultValue = "" }),
+        )
+        destination(Routes.FORGOT_PASSWORD)
+        destination(
+            Routes.VERIFY,
             arguments = listOf(navArgument("token") { type = NavType.StringType; defaultValue = "" }),
             deepLinks = listOf(
                 navDeepLink { uriPattern = "wifidatabase://verify?token={token}" },
                 navDeepLink { uriPattern = "https://wifidb.clickbeans.com/verify?token={token}" },
             ),
-        ) { entry ->
-            VerifyScreen(navController, entry.arguments?.getString("token").orEmpty())
-        }
-        composable(
-            route = Routes.RESET_PASSWORD,
+        )
+        destination(
+            Routes.RESET_PASSWORD,
             arguments = listOf(navArgument("token") { type = NavType.StringType; defaultValue = "" }),
             deepLinks = listOf(
                 navDeepLink { uriPattern = "wifidatabase://password-reset?token={token}" },
                 navDeepLink { uriPattern = "https://wifidb.clickbeans.com/password-reset?token={token}" },
             ),
-        ) { entry ->
-            ResetPasswordScreen(navController, entry.arguments?.getString("token").orEmpty())
+        )
+        destination(Routes.NEARBY)
+        destination(Routes.SEARCH)
+        destination(Routes.MAP)
+        destination(Routes.SETTINGS)
+        composable(Routes.WELCOME) {
+            WelcomeScreen(onContinue = { navController.popBackStack() }, isReplay = true)
         }
-        composable(Routes.NEARBY) { NearbyScreen(navController) }
-        composable(Routes.SEARCH) { SearchScreen(navController) }
-        composable(Routes.MAP) { MapScreen(navController) }
-        composable(Routes.SETTINGS) { SettingsScreen(navController) }
-        composable(
-            route = Routes.SHARE,
+        destination(
+            Routes.SHARE,
             arguments = listOf(
                 navArgument("ssid") { type = NavType.StringType; defaultValue = "" },
                 navArgument("bssid") { type = NavType.StringType; defaultValue = "" },
                 navArgument("security") { type = NavType.StringType; defaultValue = "" },
             ),
-        ) { entry ->
-            ShareScreen(
-                navController = navController,
-                prefilledSsid = entry.arguments?.getString("ssid").orEmpty(),
-            )
-        }
-        composable(
-            route = Routes.DETAIL,
+        )
+        destination(
+            Routes.DETAIL,
             arguments = listOf(navArgument("apId") { type = NavType.StringType }),
-        ) { entry ->
-            DetailScreen(navController)
-        }
+        )
+    }
+}
+
+@Composable
+private fun AppDestination(navController: NavHostController, entry: NavBackStackEntry) {
+    when (entry.destination.route) {
+        Routes.LOGIN -> LoginScreen(navController)
+        Routes.REGISTER -> RegisterScreen(navController)
+        Routes.CHECK_EMAIL -> CheckEmailScreen(navController, entry.arguments?.getString("email").orEmpty())
+        Routes.FORGOT_PASSWORD -> ForgotPasswordScreen(navController)
+        Routes.VERIFY -> VerifyScreen(navController, entry.arguments?.getString("token").orEmpty())
+        Routes.RESET_PASSWORD -> ResetPasswordScreen(navController, entry.arguments?.getString("token").orEmpty())
+        Routes.NEARBY -> NearbyScreen(navController)
+        Routes.SEARCH -> SearchScreen(navController)
+        Routes.MAP -> MapScreen(navController)
+        Routes.SETTINGS -> SettingsScreen(navController)
+        Routes.SHARE -> ShareScreen(navController, entry.arguments?.getString("ssid").orEmpty())
+        Routes.DETAIL -> DetailScreen(navController)
     }
 }

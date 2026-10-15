@@ -9,10 +9,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.PrivacyTip
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -32,10 +35,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.clickbeans.wifidatabase.BuildConfig
+import com.clickbeans.wifidatabase.R
 import com.clickbeans.wifidatabase.ui.Routes
 
 private const val SPONSORS_URL = "https://github.com/sponsors/erikbeans"
@@ -59,6 +64,7 @@ fun SettingsScreen(navController: NavController, viewModel: SettingsViewModel = 
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp),
         ) {
             ListItem(
@@ -66,6 +72,13 @@ fun SettingsScreen(navController: NavController, viewModel: SettingsViewModel = 
                 supportingContent = { Text(viewModel.email ?: "unknown") },
             )
             Spacer(Modifier.height(16.dp))
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.welcome_and_tips)) },
+                leadingContent = { Icon(Icons.Outlined.Info, contentDescription = null) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { navController.navigate(Routes.WELCOME) },
+            )
             ListItem(
                 headlineContent = { Text("Support development") },
                 supportingContent = { Text("WiFi Database is free — donations keep the server running") },
