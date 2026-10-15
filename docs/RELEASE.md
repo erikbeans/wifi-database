@@ -127,11 +127,15 @@ for that lead time.
 - Contributor deletion is available for 15 minutes after sharing.
 - Improved list refresh after voting removes a low-rated password or its network.
 
-This update targets the existing **Internal testing** track. The release uses
+Published to the existing **Internal testing** track on October 15, 2026.
+Play Console confirms version code 4 is available to internal testers. The
+signed bundle build and full debug unit test suite passed in
+[Android Release CI](https://github.com/erikbeans/wifi-database/actions/runs/38698094693).
+The release uses
 the existing upload key and package, so testers can update their Play install.
-The corresponding API changes must be deployed for deletion windows and
-low-score password cleanup to take effect; see `docs/DESIGN.md` for those
-existing contracts. The version bump itself does not change the design.
+The corresponding API changes are deployed in production (commit `137f0cf`),
+including the deletion and pruning modules; see `docs/DESIGN.md` for those
+existing contracts. The version bump itself does not change app behavior.
 
 ### Build and upload
 
