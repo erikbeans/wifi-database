@@ -11,7 +11,8 @@ COPY server/alembic ./alembic
 COPY docs/PRIVACY.md docs/TERMS.md ./
 
 RUN pip install --no-cache-dir . \
-    && useradd --create-home --shell /usr/sbin/nologin appuser
+    && useradd --create-home --shell /usr/sbin/nologin appuser \
+    && chmod -R a+rX /app
 
 USER appuser
 
