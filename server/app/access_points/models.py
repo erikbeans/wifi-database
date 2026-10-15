@@ -60,6 +60,11 @@ class ApPassword(Base):
             text("created_at DESC"),
             postgresql_where=text("status = 'active'"),
         ),
+        Index(
+            "idx_ap_passwords_low_score_since",
+            "low_score_since",
+            postgresql_where=text("low_score_since IS NOT NULL"),
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -71,6 +76,7 @@ class ApPassword(Base):
     up_votes: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     down_votes: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     score: Mapped[int] = mapped_column(Integer, Computed("up_votes - down_votes", persisted=True), nullable=False)
+    low_score_since: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     status: Mapped[str] = mapped_column(Text, nullable=False, default="active", server_default="active")
     submitted_by: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL")

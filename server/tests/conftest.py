@@ -12,6 +12,7 @@ os.environ["WIFI_DETAIL_LIMIT_PER_DAY"] = "100000"
 os.environ["WIFI_SUBMISSION_LIMIT_PER_DAY"] = "100000"
 os.environ["WIFI_VOTE_LIMIT_PER_DAY"] = "100000"
 os.environ["WIFI_REPORT_LIMIT_PER_DAY"] = "100000"
+os.environ["WIFI_PASSWORD_CLEANUP_ENABLED"] = "false"  # Tests drive cleanup explicitly.
 
 import pytest
 from alembic import command

@@ -1,3 +1,7 @@
+import asyncio
+import logging
+from contextlib import asynccontextmanager, suppress
+
 from fastapi import FastAPI, Request
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
@@ -6,15 +10,28 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
 from app import link_pages
+from app.access_points import cleanup
 from app.access_points.router import access_points_router, passwords_router, reports_router
 from app.auth.router import router as auth_router
+from app.config import get_settings
 from app.ratelimits import limiter
-
-import logging
 
 crash_logger = logging.getLogger("wifi.crashes")
 
-app = FastAPI(title="WiFi Database API", version="0.1.0")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    task = asyncio.create_task(cleanup.cleanup_loop()) if get_settings().password_cleanup_enabled else None
+    try:
+        yield
+    finally:
+        if task is not None:
+            task.cancel()
+            with suppress(asyncio.CancelledError):
+                await task
+
+
+app = FastAPI(title="WiFi Database API", version="0.1.0", lifespan=lifespan)
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)

@@ -143,6 +143,7 @@ CREATE TABLE ap_passwords (
     up_votes            INTEGER NOT NULL DEFAULT 0, -- denormalized for cheap ranking;
     down_votes          INTEGER NOT NULL DEFAULT 0, -- recomputed from password_votes on change
     score               INTEGER GENERATED ALWAYS AS (up_votes - down_votes) STORED,
+    low_score_since     TIMESTAMPTZ,               -- start of the current negative-score grace period
     status              TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'flagged')),
     submitted_by        UUID REFERENCES users(id) ON DELETE SET NULL,  -- contributor
     created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -150,6 +151,8 @@ CREATE TABLE ap_passwords (
 CREATE INDEX idx_ap_passwords_rank
     ON ap_passwords (access_point_id, score DESC, created_at DESC)
     WHERE status = 'active';
+CREATE INDEX idx_ap_passwords_low_score_since
+    ON ap_passwords (low_score_since) WHERE low_score_since IS NOT NULL;
 
 CREATE TABLE password_votes (
     user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,  -- votes die with the account
@@ -193,15 +196,25 @@ Candidates, ranking, and dedup:
 - If a submission is byte-identical to an existing candidate for that AP
   (server decrypts that AP's handful of candidates to compare), no duplicate
   is stored — it counts as an automatic upvote on the existing candidate.
-- Permanent cleanup: whenever votes change, a password candidate scoring
-  **−10 or lower** is deleted in the same transaction, including its encrypted
-  password, votes, and candidate reports. This includes vote switching,
+- Delayed permanent cleanup: when a password candidate's score reaches
+  **−1 or lower**, persist `low_score_since` using the database wall clock.
+  The candidate remains stored and available for voting for a **24-hour grace
+  period**. Further negative or repeated votes do not extend that deadline.
+  Recovery to **0 or higher** cancels pending deletion; a later fall to −1 or
+  lower starts a fresh full 24 hours. This applies to vote switching,
   retraction, duplicate-submission upvotes, and votes removed during account
   deletion. All candidates qualify, including flagged/anonymized entries;
-  contributor ownership and deletion deadlines do not restrict this policy.
-  The parent access point is deleted only when no candidates remain (including
+  contributor ownership, candidate age, and manual deletion deadlines do not
+  restrict this policy.
+  Once the grace period has elapsed and the score remains negative, delete
+  the candidate, its encrypted password, votes, and candidate reports. The
+  parent access point is deleted only when no candidates remain (including
   flagged candidates). AP-level reports then cascade; audit records retain
-  their normal 90-day retention. Scores above −10 remain eligible for ranking.
+  their normal 90-day retention. An API lifespan task checks due candidates
+  immediately at startup and every 60 seconds, so idle entries are removed
+  without another vote. Deletion occurs on the first successful cleanup pass
+  after 24 hours (normally within another minute); downtime or lock contention
+  can delay cleanup. Timers survive restarts and overdue work is caught up.
 - Ranking: `score` = upvotes − downvotes; candidates sort by score desc, then
   recency. The app offers the top candidate first and collapses candidates
   scoring below −3 behind a "show unlikely passwords" toggle. Candidates
@@ -257,7 +270,7 @@ distances in meters.
 | GET | `/access-points/{id}` | Full detail — **the only endpoint that returns passwords** (ranked candidate list). |
 | POST | `/access-points` | Create an access point (or match it by BSSID) and add the password as its first candidate. |
 | POST | `/access-points/{ap_id}/passwords` | Add another password candidate to an existing access point. |
-| POST | `/passwords/{id}/vote` | Set or change my vote, `{value: 1 or -1}`. Upsert; one vote per user per password. Returns final counts and deletion flags; scores ≤ −10 trigger permanent cleanup. |
+| POST | `/passwords/{id}/vote` | Set or change my vote, `{value: 1 or -1}`. Upsert; one vote per user per password. Returns final counts and deletion flags; scores ≤ −1 start a 24-hour grace period, with cleanup only after expiry. |
 | DELETE | `/passwords/{id}/vote` | Retract my vote. |
 | DELETE | `/passwords/{id}` | Delete my own password candidate strictly before its creation time + 15 minutes; expired requests return `403`. |
 | DELETE | `/access-points/{id}` | Delete my own access point within its first 15 minutes, only when every remaining candidate is mine and within its own window; candidates cascade. |
@@ -359,16 +372,18 @@ Detail and both submission responses include `server_time`, and per-viewer
 Non-owners receive false/null. Owners receive their password's deadline even
 after expiry. An AP's deadline is the earliest of its own and all remaining
 password deadlines, or null when foreign/anonymized candidates block deletion.
-`can_delete` reflects eligibility at `server_time`. No schema migration is
-required. Deploy the server before the Android update; older clients remain
-subject to the server's checks.
+`can_delete` reflects eligibility at `server_time`. Deploy the server before
+the Android update; older clients remain subject to the server's checks.
 
 **Vote cleanup response:** `POST /passwords/{id}/vote` keeps its existing
 `password_id`, `up_votes`, `down_votes`, `score`, and `my_vote` fields and adds
 `password_deleted` and `access_point_deleted` (both default false). The vote
-that triggers cleanup returns `200` with final counts captured before deletion.
-Later requests to deleted candidates/networks return `404`. Retraction retains
-its `204` response; clients reload detail to observe removal.
+that first drops a score to −1 or below returns `200` with both flags false:
+its grace period has just started. A later vote can trigger expired cleanup
+and return final counts captured before deletion. Periodic cleanup does not
+send a client event; subsequent requests to deleted candidates/networks return
+`404`. Retraction retains its `204` response; clients reload detail to observe
+removal.
 
 Mutations lock the parent access-point row before reading/modifying candidates,
 including voting, submissions, reports, and manual deletion. Counts are
@@ -376,15 +391,25 @@ recomputed from votes while holding that lock. Authenticated requests acquire
 a shared user key lock first; account deletion acquires an exclusive user lock
 and all associated parent locks in UUID order before removing votes. This
 prevents new votes escaping account cleanup and serializes cleanup against new
-contributions. Submission responses are assembled before releasing the lock.
+contributions. The periodic task takes the same parent locks in UUID order,
+skips locked parents for a later pass, and rechecks the score and timer under
+lock. It commits batches of at most 100 parents and immediately drains further
+batches; multiple API processes can run safely. Failures roll back the current
+batch, are logged, and retry on the next interval. Submission responses are
+assembled before releasing the lock.
 
-Alembic revision `0002` reconciles all candidate counts from stored votes,
-deletes candidates scoring ≤ −10, and deletes only networks emptied by this
-cleanup. Existing empty networks remain. The migration locks affected tables
-against concurrent writes; deleted data cannot be recovered by downgrading.
-Deploy the server (running its startup migration) before distributing the
-Android update. Stop old API workers before migration; do not run old workers
-alongside the new cleanup policy. No periodic cleanup job is required.
+Alembic revision `0002` is the historical immediate-cleanup migration; data
+it already deleted cannot be recovered. Revision `0003` adds the nullable
+`low_score_since` timestamp and a partial index for scheduled cleanup,
+reconciles counts from stored votes, and starts a full 24-hour grace period
+for existing negative scores at migration time. It deletes no candidates.
+Both the schema migration and new API code are required. Stop old API workers
+before migration; do not run workers with the old immediate-cleanup policy
+alongside this version. The existing container startup runs
+`alembic upgrade head` before starting the API and its cleanup task. No separate
+scheduler is required. `WIFI_PASSWORD_CLEANUP_ENABLED` defaults to true; tests disable the
+background task and run cleanup explicitly. Downgrading `0003` removes pending
+timers without deleting data; upgrading again grants fresh grace periods.
 
 **Rate limits (defaults, tunable):** 60 req/min per IP; 20 submissions per day
 per user; 200 votes/day per user; 20 reports/day per user; detail fetches
@@ -543,6 +568,7 @@ to the previous screen and refreshes Nearby, Search, or Map results. A `404`
 when reloading detail follows the same navigation/refresh path. Retraction
 reloads detail and clears disappeared candidates. Older clients may show stale
 rows until refreshed; server cleanup applies regardless of app version.
+Scheduled deletion is observed on the next refresh, without requiring a vote.
 
 ### Donations
 
@@ -589,8 +615,9 @@ sponsors page in the system browser — the app never touches payment data.
 - Consent checkbox required per submission; contributor identity stored
   internally for accountability and "delete own entry" support — but never
   exposed in API responses.
-- Passwords scoring ≤ −10 are permanently removed; networks emptied by this
-  cleanup are removed too.
+- Passwords scoring ≤ −1 for a full 24-hour grace period are permanently
+  removed by periodic cleanup; recovery to ≥ 0 cancels the timer. Networks
+  emptied by this cleanup are removed too.
 - Votes: one per user per password (primary-key enforced), changeable and
   retractable, rate-capped per day; identical resubmissions fold into upvotes
   so bad actors cannot flood an AP with duplicate candidates.

@@ -45,6 +45,7 @@ class Settings(BaseSettings):
     auth_email_quota_per_day: int = 10
     flag_report_threshold: int = 3
     audit_retention_days: int = 90
+    password_cleanup_enabled: bool = True
 
     rate_limit_per_minute: int = 60
     register_ip_limit_per_day: int = 20
