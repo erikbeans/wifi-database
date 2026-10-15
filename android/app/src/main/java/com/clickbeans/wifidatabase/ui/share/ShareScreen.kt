@@ -31,6 +31,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -45,6 +46,8 @@ fun ShareScreen(
     prefilledSsid: String,
     viewModel: ShareViewModel = hiltViewModel(),
 ) {
+    val keyboard = LocalSoftwareKeyboardController.current
+
     LaunchedEffect(prefilledSsid) {
         viewModel.preselect(prefilledSsid)
     }
@@ -161,12 +164,23 @@ fun ShareScreen(
                             .height(220.dp),
                     )
                     Spacer(Modifier.height(8.dp))
-                    Button(onClick = viewModel::useThisLocation, modifier = Modifier.fillMaxWidth()) {
+                    Button(
+                        onClick = {
+                            keyboard?.hide()
+                            viewModel.useThisLocation()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
                         Text("Use this location")
                     }
                 } else {
                     Spacer(Modifier.height(4.dp))
-                    OutlinedButton(onClick = viewModel::expandMap) {
+                    OutlinedButton(
+                        onClick = {
+                            keyboard?.hide()
+                            viewModel.expandMap()
+                        },
+                    ) {
                         Text("Adjust on map")
                     }
                 }
