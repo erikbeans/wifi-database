@@ -46,7 +46,9 @@ jobs:
 
       - name: Run unit tests
         working-directory: android
-        run: ./gradlew testReleaseUnitTest --console=plain
+        # Compose UI tests use the debug-only test activity manifest.
+        # Keep that activity out of the signed release bundle above.
+        run: ./gradlew testDebugUnitTest --console=plain
 
       - uses: actions/upload-artifact@v4
         with:

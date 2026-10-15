@@ -167,7 +167,10 @@ git tag v0.1.3
 git push origin v0.1.3
 ```
 
-The AAB is attached to a GitHub Release, ready to upload to Play.
+The workflow builds the signed release bundle and runs the full debug unit
+test suite before attaching the AAB to a GitHub Release. Compose UI tests
+require the debug-only test activity manifest; that test activity is not
+included in the release bundle.
 
 ## Play App Signing
 
