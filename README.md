@@ -64,7 +64,7 @@ cloud security groups.
 
 ## Android
 
-Build (JDK 17 and an Android SDK with platform 35 required; Android Studio
+Build (JDK 17 and an Android SDK with platform 36 required; Android Studio
 handles both):
 
 ```sh

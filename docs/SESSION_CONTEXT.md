@@ -55,6 +55,9 @@ All phases on-device tested on the owner's Samsung Fold 6 (Android 16).
 
 ## Development environment
 
+- Android compile/target SDK: 36; Android Gradle Plugin 8.10.1, Gradle 8.11.1,
+  JDK 17. Play rejected the previous target-35 release; use v0.1.2 or newer.
+
 - Dev clone: `/home/ubuntu/coding/wifi_app/wifi-database` (ubuntu-owned).
 - Android SDK: `~/android-sdk`; builds need `export ANDROID_HOME=~/android-sdk`.
   The host is ARM64 — x86_64 Android build tools run under qemu-user
@@ -106,8 +109,8 @@ All phases on-device tested on the owner's Samsung Fold 6 (Android 16).
 
 0. **Android identity:** the owner selected `com.clickbeans.wifidatabase`.
    Application ID, Kotlin namespace, source packages, and server App Links
-   configuration now use this identity. Release `v0.1.1` (versionCode 2)
-   replaces `v0.1.0`, whose AAB uses `com.erikbeans.wifidatabase`.
+   configuration now use this identity. Release `v0.1.2` (versionCode 3, target API 36)
+   replaces `v0.1.1` (target API 35) and `v0.1.0`, whose AAB uses `com.erikbeans.wifidatabase`.
    Install as a separate app from the old package and sign in again.
    Before testing a Play-installed build, add Google Play's **app signing**
    SHA-256 certificate fingerprint to the production App Links settings.
@@ -116,7 +119,7 @@ All phases on-device tested on the owner's Samsung Fold 6 (Android 16).
    keystore on the Mac at
    `/Users/erikbeans/development/configuring/upload.jks`. All four signing
    secrets are configured; the `v0.1.0` workflow passed. Use the replacement
-   `v0.1.1` bundle with the Clickbeans package for Play testing.
+   `v0.1.2` bundle with the Clickbeans package and target API 36 for Play testing.
    App icon and feature graphic are approved and in `docs/assets/`.
    Screenshots are on the owner's Mac; the owner confirmed the visible
    Wi-Fi password is safe to publish. See `docs/RELEASE.md` for uploading.

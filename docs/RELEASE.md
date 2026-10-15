@@ -7,8 +7,9 @@ new Play Store listings.
 
 ## Current Android identity
 
-Use package name `com.clickbeans.wifidatabase`. Release `v0.1.1`
-(versionCode 2) supersedes `v0.1.0`, which used
+Use package name `com.clickbeans.wifidatabase`. Release `v0.1.2`
+(versionCode 3, target API 36) supersedes `v0.1.1` (target API 35)
+and `v0.1.0`, which used
 `com.erikbeans.wifidatabase`; do not upload the old bundle.
 The new package installs separately from previous debug installs and requires
 signing in again.
@@ -148,8 +149,8 @@ GitHub → Settings → Secrets and variables → Actions:
 Then tag a release:
 
 ```sh
-git tag v0.1.1
-git push origin v0.1.1
+git tag v0.1.2
+git push origin v0.1.2
 ```
 
 The AAB is attached to a GitHub Release, ready to upload to Play.
@@ -162,3 +163,20 @@ you lose `upload.jks`, you can request a reset through the Play Console
 after identity verification. Without Play App Signing, losing your
 keystore means you can never update the app again — so leave Play App
 Signing enabled.
+
+## Internal testing warnings
+
+- **No testers:** Internal testing → Testers → create/select an email list
+  containing the Google account used on the test phone, save, and open the
+  opt-in link with that account after rolling out the test release.
+- **No deobfuscation file:** release minification is disabled, so no R8
+  mapping file is generated. This warning does not block testing.
+- **No native symbols:** Compose brings in the prebuilt
+  `libandroidx.graphics.path.so`. Its distributed binaries are already
+  stripped; our build cannot reconstruct missing debug information.
+  The warning does not block testing. The shipped ARM64 binary uses 16 KB
+  ELF alignment; packaging is handled by the Android Gradle Plugin.
+
+The credential-field Robolectric tests cover API 35 and 36 in CI. API 36
+Robolectric requires JDK 21; local non-Robolectric tests and builds may still
+run on JDK 17.
