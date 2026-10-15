@@ -7,8 +7,8 @@ new Play Store listings.
 
 ## Current Android identity
 
-Use package name `com.clickbeans.wifidatabase`. Release `v0.1.3`
-(versionCode 4, target API 36) updates `v0.1.2` (versionCode 3) and supersedes `v0.1.1` (target API 35)
+Use package name `com.clickbeans.wifidatabase`. Release `v0.1.4`
+(versionCode 5, target API 36) updates `v0.1.3` (versionCode 4) and supersedes `v0.1.1` (target API 35)
 and `v0.1.0`, which used
 `com.erikbeans.wifidatabase`; do not upload the old bundle.
 The new package installs separately from previous debug installs and requires
@@ -131,6 +131,17 @@ bundle without uploading" or "save a draft without publishing."
 The skill reuses matching uploaded bundles and drafts, verifies the exact CI
 source, and records the actual Play status. A submission awaiting review is
 reported as pending, rather than available to testers.
+
+### v0.1.4 release notes
+
+- Improved map dragging and zooming while adjusting a shared network's location.
+- Hide the keyboard when opening the location map or confirming a location.
+- Hide deletion actions when a password or access point is unavailable to delete.
+
+Prepared for the existing **Internal testing** track. Build validation and
+publication are pending. This update changes only the Android client and
+requires no new server deployment. The behavior changes are documented in
+`docs/DESIGN.md`; the version bump does not introduce additional design changes.
 
 ### v0.1.3 release notes
 
