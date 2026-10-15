@@ -115,10 +115,12 @@ All phases on-device tested on the owner's Samsung Fold 6 (Android 16).
    Application ID, Kotlin namespace, source packages, and server App Links
    configuration now use this identity. Release `v0.1.2` (versionCode 3, target API 36)
    replaces `v0.1.1` (target API 35) and `v0.1.0`, whose AAB uses `com.erikbeans.wifidatabase`.
-   The current Play internal-testing release is `v0.1.3` (versionCode 4,
-   target API 36), published October 15, 2026, including
-   Nearby refresh fixes, 15-minute contributor deletion, and list refresh
-   after low-score password cleanup. Its release notes are in `docs/RELEASE.md`.
+   The current Play internal-testing release is `v0.1.4` (versionCode 5,
+   target API 36), published October 15, 2026, at 3:14 PM PDT. It adds map
+   gesture fixes, keyboard dismissal when adjusting location, and hides
+   unavailable deletion actions. It retains the `v0.1.3` Nearby refresh,
+   contributor deletion, and low-score cleanup fixes. Its release notes and
+   build provenance are in `docs/RELEASE.md`.
    Install as a separate app from the old package and sign in again.
    The Play app-signing SHA-256 is configured in production alongside the
    debug fingerprint; both were verified in the live App Links response.
@@ -126,8 +128,10 @@ All phases on-device tested on the owner's Samsung Fold 6 (Android 16).
 1. **Play launch:** the owner has created the developer account and upload
    keystore on the Mac at
    `/Users/erikbeans/development/configuring/upload.jks`. All four signing
-   secrets are configured; the `v0.1.3` signed build and full debug unit tests
-   passed. Play Console confirms `4 (0.1.3)` is available to internal testers.
+   secrets are configured; the `v0.1.4` signed build and full debug unit tests
+   passed. Play Console confirms `5 (0.1.4)` is available to internal testers.
+   The signed AAB and Console confirmation screenshot are also on the Mac in
+   `~/Downloads/Wifi-Database-0.1.4/`.
    Release CI runs `testDebugUnitTest` because the Compose UI tests need the
    debug-only test activity manifest; the uploaded AAB is `bundleRelease`.
    App icon and feature graphic are approved and in `docs/assets/`.

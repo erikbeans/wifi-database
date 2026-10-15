@@ -138,10 +138,26 @@ reported as pending, rather than available to testers.
 - Hide the keyboard when opening the location map or confirming a location.
 - Hide deletion actions when a password or access point is unavailable to delete.
 
-Prepared for the existing **Internal testing** track. Build validation and
-publication are pending. This update changes only the Android client and
-requires no new server deployment. The behavior changes are documented in
-`docs/DESIGN.md`; the version bump does not introduce additional design changes.
+Published to the existing **Internal testing** track on October 15, 2026,
+at 3:14 PM PDT. Play Console confirms **5 (0.1.4) is available to internal
+testers**. The signed `bundleRelease` build and full `testDebugUnitTest` suite
+passed in [Android Release CI](https://github.com/erikbeans/wifi-database/actions/runs/38814398997),
+from tag `v0.1.4`, commit `30ae7d81195f928fbc46d6c602f2ce4e754934d2`.
+Archive integrity and the JAR signature were verified locally; the upload
+certificate matches `v0.1.3`. The downloaded bundle's SHA-256 matches GitHub's
+release asset digest:
+`19a93a2179d25e63bcd3ff12075b2096e3a306b8b49bc02c4d624a9e819c63c6`.
+
+Play reports zero device-support losses, API 26+, target API 36, and the same
+four native architectures. The two nonblocking warnings are the existing
+missing deobfuscation mapping and native debug symbols described below.
+The local bundle, provenance, validation log, and Console confirmation screenshot
+are in `~/Downloads/Wifi-Database-0.1.4/`, outside Git.
+
+This update changes only the Android client and requires no new server
+deployment. The behavior changes are documented in `docs/DESIGN.md`; the version
+bump does not introduce additional design changes. On-device acceptance of
+these changes from the Play-installed update remains a tester check.
 
 ### v0.1.3 release notes
 
