@@ -139,10 +139,28 @@ reported as pending, rather than available to testers.
 - Reopen Welcome & tips from Settings at any time.
 - Clearer instructions for moving the map and dragging the location pin.
 
-Prepared for the existing **Internal testing** track. Build and rollout
-verification will be recorded here after publication. This client update needs
-no new server deployment. The welcome flow and map instructions are already
-documented in `docs/DESIGN.md`; the version bump adds no design changes.
+Published to the existing **Internal testing** track on October 15, 2026,
+at 4:53 PM PDT. [Play Console](https://play.google.com/console/u/0/developers/6840887112339117561/app/4976015294566511354/tracks/4701375907841058376/releases/5/details)
+confirms **6 (0.1.5) is available to internal testers**. The signed
+`bundleRelease` build and full `testDebugUnitTest` suite passed in
+[Android Release CI](https://github.com/erikbeans/wifi-database/actions/runs/38825163004),
+from tag `v0.1.5`, commit `f4d549a0be40a292307a80099c240162a907bd9e`.
+Archive integrity and the JAR signature were verified locally; the signing
+certificate matches `v0.1.4`. The downloaded bundle's SHA-256 matches GitHub's
+release asset digest:
+`09f79c459e3416bd9be1ab3b23084d6241a5b8131d35c775a717d996c55c0c1b`.
+
+Play reports zero device-support losses, API 26+, target API 36, and the same
+four native architectures. The only two warnings are the existing missing
+deobfuscation mapping and native debug symbols described below. The signed
+bundle, provenance, validation log, and Console confirmation screenshot are in
+`~/Downloads/Wifi-Database-0.1.5/`, outside Git. The unrelated store-listing
+draft was left untouched; managed publishing remains off.
+
+This client update needs no new server deployment. The welcome flow and map
+instructions are already documented in `docs/DESIGN.md`; the version bump adds
+no design changes. On-device acceptance of the Play-installed update remains
+a tester check.
 
 ### v0.1.4 release notes
 
