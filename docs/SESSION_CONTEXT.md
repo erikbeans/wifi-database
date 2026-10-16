@@ -115,12 +115,13 @@ All phases on-device tested on the owner's Samsung Fold 6 (Android 16).
    Application ID, Kotlin namespace, source packages, and server App Links
    configuration now use this identity. Release `v0.1.2` (versionCode 3, target API 36)
    replaces `v0.1.1` (target API 35) and `v0.1.0`, whose AAB uses `com.erikbeans.wifidatabase`.
-   The current Play internal-testing release is `v0.1.5` (versionCode 6,
-   target API 36), published October 15, 2026, at 4:53 PM PDT. It adds the
-   first-use welcome screen, Settings → Welcome & tips, and clearer map pin
-   instructions. It retains the `v0.1.4` map gesture fixes, keyboard dismissal,
-   and hidden unavailable deletion actions, plus the `v0.1.3` Nearby refresh
-   fixes. Its release notes and build provenance are in `docs/RELEASE.md`.
+   The current Play internal-testing release is `v0.1.6` (versionCode 7,
+   target API 36), published October 15, 2026, at 9:47 PM PDT. Tapping a
+   scanned Nearby row opens Share with the network selected; its Password
+   chip independently opens detail. Preselection also handles delayed scans.
+   It retains the welcome screen, Settings → Welcome & tips, map instructions,
+   map gesture and deletion UI fixes, and Nearby refresh fixes. Its release
+   notes and build provenance are in `docs/RELEASE.md`.
    Install as a separate app from the old package and sign in again.
    The Play app-signing SHA-256 is configured in production alongside the
    debug fingerprint; both were verified in the live App Links response.
@@ -128,10 +129,10 @@ All phases on-device tested on the owner's Samsung Fold 6 (Android 16).
 1. **Play launch:** the owner has created the developer account and upload
    keystore on the Mac at
    `/Users/erikbeans/development/configuring/upload.jks`. All four signing
-   secrets are configured; the `v0.1.5` signed build and full debug unit tests
-   passed. Play Console confirms `6 (0.1.5)` is available to internal testers.
+   secrets are configured; the `v0.1.6` signed build and full debug unit tests
+   passed. Play Console confirms `7 (0.1.6)` is available to internal testers.
    The signed AAB and Console confirmation screenshot are also on the Mac in
-   `~/Downloads/Wifi-Database-0.1.5/`.
+   `~/Downloads/Wifi-Database-0.1.6/`.
    Release CI runs `testDebugUnitTest` because the Compose UI tests need the
    debug-only test activity manifest; the uploaded AAB is `bundleRelease`.
    App icon and feature graphic are approved and in `docs/assets/`.

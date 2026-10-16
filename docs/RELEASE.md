@@ -138,10 +138,28 @@ reported as pending, rather than available to testers.
 - The Password button still opens saved passwords independently.
 - Improved network preselection when scan results arrive after opening the add-password screen.
 
-Prepared for the existing **Internal testing** track. Build and rollout
-verification will be recorded here after publication. This client update needs
-no server deployment. Nearby row actions and Share preselection are already
-documented in `docs/DESIGN.md`; the version bump adds no design changes.
+Published to the existing **Internal testing** track on October 15, 2026,
+at 9:47 PM PDT. [Play Console](https://play.google.com/console/u/0/developers/6840887112339117561/app/4976015294566511354/tracks/4701375907841058376/releases/6/details)
+confirms **7 (0.1.6) is available to internal testers**. The signed
+`bundleRelease` build and full `testDebugUnitTest` suite passed in
+[Android Release CI](https://github.com/erikbeans/wifi-database/actions/runs/38851450387),
+from tag `v0.1.6`, commit `0d19ebfe3bfa469ec4a52a4d1055bf01c7ef35bb`.
+Archive integrity and the JAR signature were verified locally; the signing
+certificate matches `v0.1.5`. The downloaded bundle's SHA-256 matches GitHub's
+release asset digest:
+`2127973f1075d15404b7644ac21f34bd4240199c6a46006743cdb295abb1b4b5`.
+
+Play reports zero device-support losses, API 26+, target API 36, and the same
+four native architectures. The only two warnings are the existing missing
+deobfuscation mapping and native debug symbols described below. The signed
+bundle, provenance, validation log, and Console confirmation screenshot are in
+`~/Downloads/Wifi-Database-0.1.6/`, outside Git. The unrelated store-listing
+draft was left untouched; managed publishing remains off.
+
+This client update needs no server deployment. Nearby row actions and Share
+preselection are already documented in `docs/DESIGN.md`; the version bump adds
+no design changes. On-device acceptance of the Play-installed update remains
+a tester check.
 
 ### v0.1.5 release notes
 
