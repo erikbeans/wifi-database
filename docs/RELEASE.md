@@ -7,8 +7,8 @@ new Play Store listings.
 
 ## Current Android identity
 
-Use package name `com.clickbeans.wifidatabase`. Release `v0.1.5`
-(versionCode 6, target API 36) updates `v0.1.4` (versionCode 5) and supersedes `v0.1.1` (target API 35)
+Use package name `com.clickbeans.wifidatabase`. Release `v0.1.6`
+(versionCode 7, target API 36) updates `v0.1.5` (versionCode 6) and supersedes `v0.1.1` (target API 35)
 and `v0.1.0`, which used
 `com.erikbeans.wifidatabase`; do not upload the old bundle.
 The new package installs separately from previous debug installs and requires
@@ -131,6 +131,17 @@ bundle without uploading" or "save a draft without publishing."
 The skill reuses matching uploaded bundles and drafts, verifies the exact CI
 source, and records the actual Play status. A submission awaiting review is
 reported as pending, rather than available to testers.
+
+### v0.1.6 release notes
+
+- Tap a scanned network in Nearby to add a password with the network already selected.
+- The Password button still opens saved passwords independently.
+- Improved network preselection when scan results arrive after opening the add-password screen.
+
+Prepared for the existing **Internal testing** track. Build and rollout
+verification will be recorded here after publication. This client update needs
+no server deployment. Nearby row actions and Share preselection are already
+documented in `docs/DESIGN.md`; the version bump adds no design changes.
 
 ### v0.1.5 release notes
 
