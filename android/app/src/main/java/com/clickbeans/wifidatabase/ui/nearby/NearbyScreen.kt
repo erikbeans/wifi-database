@@ -7,6 +7,7 @@ import android.net.Uri
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -189,7 +190,7 @@ internal fun NearbyScreen(
                     NearbyList(
                         state = state,
                         onRefresh = onRefresh,
-                        onRowClick = { row ->
+                        onViewPasswords = { row ->
                             row.accessPoint?.let { navController.navigate("detail/${it.id}") }
                         },
                         onShareScanned = { row ->
@@ -212,7 +213,7 @@ internal fun NearbyScreen(
 private fun NearbyList(
     state: NearbyUiState,
     onRefresh: () -> Unit,
-    onRowClick: (NearbyRow) -> Unit,
+    onViewPasswords: (NearbyRow) -> Unit,
     onShareScanned: (NearbyRow) -> Unit,
 ) {
     if (state.rows.isEmpty()) {
@@ -254,7 +255,7 @@ private fun NearbyList(
                 trailingContent = {
                     if (row.passwordAvailable) {
                         AssistChip(
-                            onClick = { onRowClick(row) },
+                            onClick = { onViewPasswords(row) },
                             label = {
                                 Text(
                                     row.bestScore?.let { "Password · score $it" } ?: "Password available"
@@ -280,7 +281,15 @@ private fun NearbyList(
                         },
                     )
                 },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().then(
+                    if (row.scanned != null) {
+                        Modifier.clickable(onClickLabel = "Add password for ${row.title}") {
+                            onShareScanned(row)
+                        }
+                    } else {
+                        Modifier
+                    }
+                ),
             )
         }
     }

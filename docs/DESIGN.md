@@ -537,6 +537,12 @@ with no new server API or database changes.
    throttling. The empty state remains scrollable for pull-to-refresh and
    includes a Refresh button; refresh stays available after an empty result
    or a location/network error.
+   Tap a scanned network's row (name, icon, or surrounding space) to open
+   Share with that network selected, whether or not a password is already
+   available. The separate Password chip opens saved passwords without
+   triggering the row action. Database-only rows are not tappable; their
+   Password chip still opens detail. The scanned row's accessibility action
+   is labeled "Add password for [network]".
 3. **Share:** pick a scanned network from a dropdown (SSID/BSSID/security
    prefilled; manual entry is not offered) → password field (show/hide) →
    current GPS coordinates shown on an embedded mini-map with a draggable
@@ -549,6 +555,12 @@ with no new server API or database changes.
    alternative password"; if the password is identical to an existing
    candidate it becomes an upvote, and the UI says so. (Treat 200 and 201
    the same.)
+
+   Share preselection uses the requested SSID from actual scan results. If
+   results arrive after navigation, selection waits for the matching network;
+   it never creates a selectable network from route arguments alone. A manual
+   dropdown selection cancels pending preselection and remains selected across
+   scan updates. Unavailable networks retain the existing scan/rescan flow.
 
    **Trust boundary:** the scan-only constraint is enforced by the client
    (the dropdown). The server cannot independently verify that an SSID was

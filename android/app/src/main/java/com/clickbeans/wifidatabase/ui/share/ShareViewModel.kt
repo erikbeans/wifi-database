@@ -56,6 +56,7 @@ class ShareViewModel @Inject constructor(
 
     private val _events = Channel<ShareEvent>(Channel.BUFFERED)
     val events: Flow<ShareEvent> = _events.receiveAsFlow()
+    private var pendingSsid: String? = null
 
     init {
         viewModelScope.launch {
@@ -106,20 +107,21 @@ class ShareViewModel @Inject constructor(
     }
 
     fun preselect(ssid: String) {
-        if (ssid.isBlank()) return
-        state.networks.firstOrNull { it.ssid == ssid }?.let { network ->
-            state = state.copy(selected = network)
-        }
+        if (ssid.isBlank() || state.selected != null) return
+        pendingSsid = ssid
+        applyScan(state.networks)
     }
 
     private fun applyScan(networks: List<ScannedNetwork>) {
         val selected = state.selected?.let { sel ->
             networks.firstOrNull { it.ssid == sel.ssid } ?: sel
-        }
+        } ?: networks.firstOrNull { it.ssid == pendingSsid }
+        if (selected != null) pendingSsid = null
         state = state.copy(networks = networks, selected = selected)
     }
 
     fun selectNetwork(network: ScannedNetwork) {
+        pendingSsid = null
         state = state.copy(selected = network, dropdownOpen = false)
     }
 
