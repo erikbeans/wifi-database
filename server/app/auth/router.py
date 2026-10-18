@@ -101,6 +101,7 @@ def resend_verification(
 def login(payload: LoginRequest, db: Session = Depends(get_db)) -> TokenPair:
     user = _find_user(db, payload.email.lower())
     if user is None:
+        security.equalize_login_timing(payload.password)
         raise HTTPException(status_code=401, detail=security.INVALID_CREDENTIALS)
     if security.is_locked(user):
         raise HTTPException(status_code=401, detail=security.INVALID_CREDENTIALS)

@@ -7,7 +7,7 @@ import jwt
 from argon2 import PasswordHasher
 from argon2.exceptions import Argon2Error
 from fastapi import Depends, HTTPException, Request
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
 from app.auth.models import AuthToken, User
@@ -19,6 +19,8 @@ pwd_hasher = PasswordHasher()
 INVALID_CREDENTIALS = "invalid credentials"
 INVALID_TOKEN = "invalid or expired token"
 
+_DUMMY_HASH = pwd_hasher.hash("timing-equalization-password")
+
 
 def hash_password(password: str) -> str:
     return pwd_hasher.hash(password)
@@ -29,6 +31,10 @@ def verify_password(password: str, password_hash: str) -> bool:
         return pwd_hasher.verify(password_hash, password)
     except (Argon2Error, ValueError):
         return False
+
+
+def equalize_login_timing(password: str) -> None:
+    verify_password(password, _DUMMY_HASH)
 
 
 def create_access_token(user_id: uuid.UUID) -> str:
@@ -81,11 +87,21 @@ def lookup_token(db: Session, raw: str, kind: str) -> AuthToken | None:
 
 
 def consume_single_use_token(db: Session, raw: str, kind: str) -> AuthToken | None:
-    row = lookup_token(db, raw, kind)
-    if row is None or row.used_at is not None or row.expires_at <= _now():
+    """Atomically claim a single-use token; concurrent claims all lose but one."""
+    now = _now()
+    claimed = db.execute(
+        update(AuthToken)
+        .where(
+            AuthToken.token_hash == _token_hash(raw),
+            AuthToken.kind == kind,
+            AuthToken.used_at.is_(None),
+            AuthToken.expires_at > now,
+        )
+        .values(used_at=now)
+    )
+    if claimed.rowcount != 1:
         return None
-    row.used_at = _now()
-    return row
+    return lookup_token(db, raw, kind)
 
 
 def rotate_refresh_token(db: Session, raw: str) -> AuthToken | str:
@@ -95,10 +111,18 @@ def rotate_refresh_token(db: Session, raw: str) -> AuthToken | str:
     if row.used_at is not None:
         db.execute(delete(AuthToken).where(AuthToken.kind == "refresh", AuthToken.family_id == row.family_id))
         return "reuse"
+    claimed = db.execute(
+        update(AuthToken)
+        .where(AuthToken.id == row.id, AuthToken.used_at.is_(None))
+        .values(used_at=_now())
+    )
+    if claimed.rowcount != 1:
+        # A concurrent replay won the claim; treat it as detected reuse.
+        db.execute(delete(AuthToken).where(AuthToken.kind == "refresh", AuthToken.family_id == row.family_id))
+        return "reuse"
     if row.expires_at <= _now():
         db.delete(row)
         return "invalid"
-    row.used_at = _now()
     return row
 
 

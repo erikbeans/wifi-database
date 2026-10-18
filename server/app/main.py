@@ -21,6 +21,7 @@ crash_logger = logging.getLogger("wifi.crashes")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    get_settings().validate_production_secrets()
     task = asyncio.create_task(cleanup.cleanup_loop()) if get_settings().password_cleanup_enabled else None
     try:
         yield
@@ -80,6 +81,10 @@ class CrashReport(BaseModel):
     app_version: str = Field(default="", max_length=64)
 
 
+def sanitize_crash_trace(trace: str) -> str:
+    return trace.replace("\r", "").replace("\n", " | ")
+
+
 @app.post("/api/v1/crash-reports", status_code=204, include_in_schema=False)
 @limiter.limit("10/hour")
 def crash_report(request: Request, report: CrashReport):
@@ -88,6 +93,6 @@ def crash_report(request: Request, report: CrashReport):
         report.device_model,
         report.android_version,
         report.app_version,
-        report.stack_trace,
+        sanitize_crash_trace(report.stack_trace),
     )
     return Response(status_code=204)

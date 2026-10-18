@@ -1,5 +1,10 @@
 package com.clickbeans.wifidatabase.ui.detail
 
+import android.content.ClipData
+import android.content.ClipDescription
+
+import android.os.Build
+import android.os.PersistableBundle
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -50,7 +55,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
@@ -73,8 +77,17 @@ private val REPORT_REASONS = listOf(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DetailScreen(navController: NavController, viewModel: DetailViewModel = hiltViewModel()) {
-    val clipboard = LocalClipboardManager.current
     val context = androidx.compose.ui.platform.LocalContext.current
+    fun copyPassword(password: String) {
+        val clip = ClipData.newPlainText("password", password)
+        if (Build.VERSION.SDK_INT >= 33) {
+            clip.description.extras = PersistableBundle().apply {
+                putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true)
+            }
+        }
+        context.getSystemService(android.content.ClipboardManager::class.java)
+            .setPrimaryClip(clip)
+    }
     val snackbar = remember { SnackbarHostState() }
     var reportTarget by remember { mutableStateOf<PasswordCandidate?>(null) }
     var didItWorkTarget by remember { mutableStateOf<String?>(null) }
@@ -192,7 +205,7 @@ fun DetailScreen(navController: NavController, viewModel: DetailViewModel = hilt
                                 canDelete = viewModel.canDelete(candidate),
                                 onAddToPhone = { viewModel.addToPhone(candidate) },
                                 onCopy = {
-                                    clipboard.setText(AnnotatedString(candidate.password))
+                                    copyPassword(candidate.password)
                                     viewModel.markCopied(candidate.id)
                                     didItWorkTarget = candidate.id
                                 },
@@ -222,7 +235,7 @@ fun DetailScreen(navController: NavController, viewModel: DetailViewModel = hilt
                                         canDelete = viewModel.canDelete(candidate),
                                         onAddToPhone = { viewModel.addToPhone(candidate) },
                                         onCopy = {
-                                            clipboard.setText(AnnotatedString(candidate.password))
+                                            copyPassword(candidate.password)
                                             didItWorkTarget = candidate.id
                                         },
                                         onVote = { value -> viewModel.vote(candidate.id, value) },

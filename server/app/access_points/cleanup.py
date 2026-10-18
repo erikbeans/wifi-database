@@ -3,6 +3,7 @@
 import asyncio
 import logging
 
+from app import audit
 from app.access_points import pruning
 from app.database import SessionLocal
 
@@ -15,6 +16,7 @@ def run_cleanup() -> None:
     while True:
         with SessionLocal.begin() as db:
             processed = pruning.cleanup_due(db, batch_size=BATCH_SIZE)
+            audit.purge(db)
         if processed < BATCH_SIZE:
             return
 
