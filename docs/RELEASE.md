@@ -7,8 +7,8 @@ new Play Store listings.
 
 ## Current Android identity
 
-Use package name `com.clickbeans.wifidatabase`. Release `v0.1.6`
-(versionCode 7, target API 36) updates `v0.1.5` (versionCode 6) and supersedes `v0.1.1` (target API 35)
+Use package name `com.clickbeans.wifidatabase`. Release `v0.1.7`
+(versionCode 8, target API 36) updates `v0.1.6` (versionCode 7) and supersedes `v0.1.1` (target API 35)
 and `v0.1.0`, which used
 `com.erikbeans.wifidatabase`; do not upload the old bundle.
 The new package installs separately from previous debug installs and requires
@@ -131,6 +131,18 @@ bundle without uploading" or "save a draft without publishing."
 The skill reuses matching uploaded bundles and drafts, verifies the exact CI
 source, and records the actual Play status. A submission awaiting review is
 reported as pending, rather than available to testers.
+
+### v0.1.7 release notes
+
+- Safer account verification and password reset through verified HTTPS app links.
+- Copied WiFi passwords are marked sensitive on Android 13 and newer to hide clipboard previews.
+
+Prepared for the existing **Internal testing** track. Build and rollout
+verification will be recorded here after publication. Production was verified
+at `db1e0e4dad1d916ae1e184cc5e31a33f4982700b`, with healthy API responses,
+HTTPS fallback links, and the correct App Links package and signing certificate.
+No server deployment is needed for this release. The security behavior is
+already documented in `docs/DESIGN.md`; the version bump adds no design changes.
 
 ### v0.1.6 release notes
 
