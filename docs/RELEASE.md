@@ -137,12 +137,30 @@ reported as pending, rather than available to testers.
 - Safer account verification and password reset through verified HTTPS app links.
 - Copied WiFi passwords are marked sensitive on Android 13 and newer to hide clipboard previews.
 
-Prepared for the existing **Internal testing** track. Build and rollout
-verification will be recorded here after publication. Production was verified
-at `db1e0e4dad1d916ae1e184cc5e31a33f4982700b`, with healthy API responses,
-HTTPS fallback links, and the correct App Links package and signing certificate.
-No server deployment is needed for this release. The security behavior is
-already documented in `docs/DESIGN.md`; the version bump adds no design changes.
+Published to the existing **Internal testing** track on October 18, 2026,
+at 10:41 AM PDT. [Play Console](https://play.google.com/console/u/0/developers/6840887112339117561/app/4976015294566511354/tracks/4701375907841058376/releases/7/details)
+confirms **8 (0.1.7) is available to internal testers**. The signed
+`bundleRelease` build and full `testDebugUnitTest` suite passed in
+[Android Release CI](https://github.com/erikbeans/wifi-database/actions/runs/39149920497),
+from tag `v0.1.7`, commit `7ab863d9a5dd2e50e76875114ed32709010b5ced`.
+Archive integrity and the JAR signature were verified locally; the signing
+certificate matches `v0.1.6`. The downloaded bundle's SHA-256 matches GitHub's
+release asset digest:
+`453e69a5c934a2e2a56dedf5fb880a220f65ee85d47ff7ff53a975b81cb296b5`.
+
+Play reports zero device-support losses, API 26+, target API 36, and the same
+four native architectures. The only two warnings are the existing missing
+deobfuscation mapping and native debug symbols described below. The signed
+bundle, provenance, validation log, and Console confirmation screenshot are in
+`~/Downloads/Wifi-Database-0.1.7/`, outside Git. The unrelated store-listing
+draft was left untouched; managed publishing remains off.
+
+Production was already at `db1e0e4dad1d916ae1e184cc5e31a33f4982700b`, with
+healthy API responses, HTTPS fallback links, and the correct App Links package
+and signing certificate. No server deployment was performed for this release.
+The security behavior is already documented in `docs/DESIGN.md`; the version
+bump adds no design changes. On-device acceptance of the Play-installed update
+remains a tester check.
 
 ### v0.1.6 release notes
 

@@ -91,8 +91,8 @@ All phases on-device tested on the owner's Samsung Fold 6 (Android 16).
   on `mine || SubmissionMemory`.
 - **Deep links:** `https://wifidb.clickbeans.com/verify|/password-reset`
   (App Links, autoVerify, assetlinks.json served by API from
-  `WIFI_ANDROID_SHA256_FINGERPRINTS`) + fallback HTML pages + legacy
-  `wifidatabase://` scheme. All debug builds sign with the committed
+  `WIFI_ANDROID_SHA256_FINGERPRINTS`) + HTTPS fallback HTML pages. The legacy
+  `wifidatabase://` scheme was removed for security. All debug builds sign with the committed
   `android/app/debug.keystore`. Production assetlinks now lists both the
   debug certificate and the owner-provided Google Play app-signing SHA-256:
   `DF:3B:85:0A:DD:FB:C5:2A:5A:30:DD:49:87:E0:D8:F7:86:8E:06:1A:30:F0:EF:6C:68:64:EF:93:F4:30:C3:CF`.
@@ -115,13 +115,16 @@ All phases on-device tested on the owner's Samsung Fold 6 (Android 16).
    Application ID, Kotlin namespace, source packages, and server App Links
    configuration now use this identity. Release `v0.1.2` (versionCode 3, target API 36)
    replaces `v0.1.1` (target API 35) and `v0.1.0`, whose AAB uses `com.erikbeans.wifidatabase`.
-   The current Play internal-testing release is `v0.1.6` (versionCode 7,
-   target API 36), published October 15, 2026, at 9:47 PM PDT. Tapping a
-   scanned Nearby row opens Share with the network selected; its Password
-   chip independently opens detail. Preselection also handles delayed scans.
-   It retains the welcome screen, Settings → Welcome & tips, map instructions,
-   map gesture and deletion UI fixes, and Nearby refresh fixes. Its release
-   notes and build provenance are in `docs/RELEASE.md`.
+   The current Play internal-testing release is `v0.1.7` (versionCode 8,
+   target API 36), published October 18, 2026, at 10:41 AM PDT. It uses
+   verified HTTPS verification/reset links only and marks copied passwords
+   sensitive on Android 13+. It retains scanned Nearby row taps to Share,
+   independent Password chips, deferred scan preselection, the welcome screen,
+   Settings → Welcome & tips, and map, deletion UI, and refresh fixes. Its
+   release notes and build provenance are in `docs/RELEASE.md`.
+   Production was verified at `db1e0e4` with healthy API responses, HTTPS
+   fallback pages, and matching App Links configuration; no server deployment
+   was needed for this Play release.
    Install as a separate app from the old package and sign in again.
    The Play app-signing SHA-256 is configured in production alongside the
    debug fingerprint; both were verified in the live App Links response.
@@ -129,10 +132,10 @@ All phases on-device tested on the owner's Samsung Fold 6 (Android 16).
 1. **Play launch:** the owner has created the developer account and upload
    keystore on the Mac at
    `/Users/erikbeans/development/configuring/upload.jks`. All four signing
-   secrets are configured; the `v0.1.6` signed build and full debug unit tests
-   passed. Play Console confirms `7 (0.1.6)` is available to internal testers.
+   secrets are configured; the `v0.1.7` signed build and full debug unit tests
+   passed. Play Console confirms `8 (0.1.7)` is available to internal testers.
    The signed AAB and Console confirmation screenshot are also on the Mac in
-   `~/Downloads/Wifi-Database-0.1.6/`.
+   `~/Downloads/Wifi-Database-0.1.7/`.
    Release CI runs `testDebugUnitTest` because the Compose UI tests need the
    debug-only test activity manifest; the uploaded AAB is `bundleRelease`.
    App icon and feature graphic are approved and in `docs/assets/`.
