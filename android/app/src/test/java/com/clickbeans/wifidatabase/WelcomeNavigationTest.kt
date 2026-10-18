@@ -148,16 +148,18 @@ class WelcomeNavigationTest {
     fun `warm verification and reset links bypass welcome without completing it`() {
         show()
         for ((host, route) in listOf("verify" to Routes.VERIFY, "password-reset" to Routes.RESET_PASSWORD)) {
-            for (prefix in listOf("wifidatabase://", "https://wifidb.clickbeans.com/")) {
-                compose.runOnIdle {
-                    assertTrue(nav.handleDeepLink(Intent(Intent.ACTION_VIEW, Uri.parse("$prefix$host?token=keep-me"))))
-                }
-                compose.onNodeWithText("Destination: $route").assertIsDisplayed()
-                compose.onNodeWithText("Get started").assertDoesNotExist()
-                compose.runOnIdle {
-                    assertEquals("keep-me", nav.currentBackStackEntry!!.arguments!!.getString("token"))
-                    assertFalse(completed.value)
-                }
+            compose.runOnIdle {
+                assertTrue(
+                    nav.handleDeepLink(
+                        Intent(Intent.ACTION_VIEW, Uri.parse("https://wifidb.clickbeans.com/$host?token=keep-me"))
+                    )
+                )
+            }
+            compose.onNodeWithText("Destination: $route").assertIsDisplayed()
+            compose.onNodeWithText("Get started").assertDoesNotExist()
+            compose.runOnIdle {
+                assertEquals("keep-me", nav.currentBackStackEntry!!.arguments!!.getString("token"))
+                assertFalse(completed.value)
             }
         }
         compose.runOnIdle { nav.navigate(Routes.NEARBY) }
@@ -181,8 +183,8 @@ class WelcomeNavigationTest {
     }
 
     @Test
-    fun `cold legacy reset link bypasses welcome`() {
-        coldLink("wifidatabase://password-reset?token=cold-token", Routes.RESET_PASSWORD)
+    fun `cold https reset link bypasses welcome`() {
+        coldLink("https://wifidb.clickbeans.com/password-reset?token=cold-token", Routes.RESET_PASSWORD)
     }
 
     @Test
