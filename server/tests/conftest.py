@@ -34,6 +34,7 @@ def schema():
     with engine.begin() as conn:
         conn.execute(text("CREATE EXTENSION IF NOT EXISTS postgis"))
         conn.execute(text("CREATE EXTENSION IF NOT EXISTS pg_trgm"))
+        conn.execute(text("DROP TABLE IF EXISTS alembic_version"))
     command.upgrade(Config("alembic.ini"), "head")
     Base.metadata.drop_all(engine)
     yield

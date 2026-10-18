@@ -93,7 +93,7 @@ These are hard OS constraints that shape the app design:
 | Android 9+ (API 28) throttles WiFi scans to 4 per 2 minutes in the foreground | Scan on user demand ("Refresh" button), cache `ScanResults` with a timestamp, and show "results as of T" |
 | `minSdk = 26` (Android 8.0) chosen | Avoids oldest quirks while covering ~98% of active devices; `targetSdk = 35` |
 | SSID/BSSID of the connected network also requires location permission | Same permission gate covers it |
-| No API to join a WPA network silently (since Android 10) | "Add to phone" uses `WifiNetworkSuggestion` (one system-approval prompt, then auto-join in range); copy-to-clipboard fallback |
+| No API to join a WPA network silently (since Android 10) | "Add to phone" uses `WifiNetworkSuggestion` (one system-approval prompt, then auto-join in range); copy-to-clipboard fallback. Copied passwords are marked sensitive so Android 13+ hides them from the clipboard preview. |
 
 ## 4. Data model
 
@@ -250,11 +250,19 @@ distances in meters.
   hashes in `auth_tokens`, are single-use (refresh rotates on every use —
   reuse of an already-rotated token revokes the whole family, which is how
   theft is detected), and are revocable on logout and password change/reset.
+  Single-use claims are atomic (`UPDATE ... WHERE used_at IS NULL`), so
+  concurrent replays of the same token all lose but one; a lost claim race
+  on a refresh token is treated as detected reuse and revokes the family.
   A stolen access token dies in minutes.
 - Login hardening: uniform 401 "invalid credentials" for wrong email and
-  wrong password alike; 5 consecutive failures lock the account for 15 min,
+  wrong password alike; an unknown address runs a dummy Argon2 verification
+  first so response timing cannot reveal whether an account exists;
+  5 consecutive failures lock the account for 15 min,
   doubling up to 24 h (`users.locked_until`). Verify/reset emails are
-  single-use, 24 h, deep-linked back into the app.
+  single-use, 24 h, deep-linked back into the app. Deep links use verified
+  https App Links only (`https://wifidb.clickbeans.com/verify|password-reset`
+  with `assetlinks.json`); no custom URI scheme is registered, since any app
+  could spoof a custom scheme and steal the token.
 - Verification gates: an unverified account may browse lists, but cannot
   reveal passwords, submit, vote, or report (403, `reason: "email_unverified"`).
 - Password policy: min 8 chars with Argon2id + lockout. Email validated by
@@ -467,7 +475,10 @@ Notable decisions:
   no CSRF surface. HSTS and standard security headers are set at the proxy.
 - Passwords are never logged (log filter guards the fields). Audit events
   (`password_view`, `submission`, `vote`, `report`) hold user and target IDs
-  only and are purged after 90 days.
+  only and are purged after 90 days by the hourly cleanup task. Crash
+  reports are stripped of newlines before logging so they cannot forge log
+  lines. Production boots fail fast when `WIFI_REQUIRE_SECURE_SECRETS=1`
+  and the JWT secret is a known default or the AES key is missing/invalid.
 - Error mapping: 401 unauthenticated, 403 not-owner-or-unverified, 404
   missing, 409 (reserved), 422 validation.
 

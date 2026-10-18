@@ -55,6 +55,26 @@ class Settings(BaseSettings):
     vote_limit_per_day: int = 200
     report_limit_per_day: int = 20
 
+    require_secure_secrets: bool = False
+
+    def validate_production_secrets(self) -> None:
+        if not self.require_secure_secrets:
+            return
+        insecure = {"dev-only-insecure-secret", "test-jwt-secret-0123456789abcdef"}
+        if self.jwt_secret in insecure:
+            raise RuntimeError("WIFI_JWT_SECRET must be set to a strong random value")
+        if not self.encryption_key:
+            raise RuntimeError("WIFI_ENCRYPTION_KEY must be configured")
+        try:
+            import base64
+
+            if len(base64.b64decode(self.encryption_key)) != 32:
+                raise RuntimeError("WIFI_ENCRYPTION_KEY must be the base64 of exactly 32 bytes")
+        except RuntimeError:
+            raise
+        except Exception as exc:
+            raise RuntimeError("WIFI_ENCRYPTION_KEY must be valid base64 of 32 bytes") from exc
+
 
 @lru_cache
 def get_settings() -> Settings:

@@ -87,7 +87,7 @@ def test_application_lifespan_starts_and_stops_worker(monkeypatch, enabled):
             finally:
                 stopped.set()
         monkeypatch.setattr(main.cleanup, 'cleanup_loop', worker)
-        monkeypatch.setattr(main, 'get_settings', lambda: SimpleNamespace(password_cleanup_enabled=enabled))
+        monkeypatch.setattr(main, 'get_settings', lambda: SimpleNamespace(password_cleanup_enabled=enabled, validate_production_secrets=lambda: None))
         async with main.lifespan(main.app):
             if enabled:
                 await asyncio.wait_for(started.wait(), timeout=1)

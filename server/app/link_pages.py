@@ -42,12 +42,12 @@ def _page(app_link: str) -> HTMLResponse:
 
 def verify_page(token: str) -> HTMLResponse:
     safe = html.escape(token, quote=True)
-    return _page(f"wifidatabase://verify?token={safe}")
+    return _page(f"https://wifidb.clickbeans.com/verify?token={safe}")
 
 
 def password_reset_page(token: str) -> HTMLResponse:
     safe = html.escape(token, quote=True)
-    return _page(f"wifidatabase://password-reset?token={safe}")
+    return _page(f"https://wifidb.clickbeans.com/password-reset?token={safe}")
 
 
 def assetlinks_response() -> JSONResponse:

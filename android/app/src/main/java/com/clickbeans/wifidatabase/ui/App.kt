@@ -238,7 +238,6 @@ internal fun AppNavHost(
             Routes.VERIFY,
             arguments = listOf(navArgument("token") { type = NavType.StringType; defaultValue = "" }),
             deepLinks = listOf(
-                navDeepLink { uriPattern = "wifidatabase://verify?token={token}" },
                 navDeepLink { uriPattern = "https://wifidb.clickbeans.com/verify?token={token}" },
             ),
         )
@@ -246,7 +245,6 @@ internal fun AppNavHost(
             Routes.RESET_PASSWORD,
             arguments = listOf(navArgument("token") { type = NavType.StringType; defaultValue = "" }),
             deepLinks = listOf(
-                navDeepLink { uriPattern = "wifidatabase://password-reset?token={token}" },
                 navDeepLink { uriPattern = "https://wifidb.clickbeans.com/password-reset?token={token}" },
             ),
         )
